@@ -12,11 +12,7 @@ class Entity
     this.w = w
     this.h = h
   }
-
-  /**
-   * @param {number} x
-   * @param {number} y
-   */
+  
   move(x, y)
   {
     this.x = x
@@ -111,9 +107,9 @@ Text.size = undefined
 
 class Plane extends AnimatedEntity
 {
-  constructor(x, y, w = Plane.width, h = Plane.height)
+  constructor(x, y, interShootTime, w = Plane.width, h = Plane.height)
   {
-    super("idle", x, y, w, h)
+    super("plane", x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
   }
@@ -126,6 +122,10 @@ class Plane extends AnimatedEntity
       this.shoot()
       this.currentInterShootTime = 0
     }
+  }
+  
+  shoot()
+  {
   }
 }
 
@@ -156,10 +156,6 @@ class PlayerPlane extends Plane
     this.SyncWithBlobsId()
   }
 
-  shoot()
-  {
-  }
-
   assignBlob(f)
   {
     const blob = this.blobs.find(f)
@@ -179,11 +175,6 @@ class PlayerPlane extends Plane
     {
       this.deletePlayerPlane(this)
     }
-  }
-
-  SyncWithBlobsPos()
-  {
-    this.assignBlob(b => this.IsBlobAtDistance(b))
   }
 
   SyncWithBlobsId()
@@ -213,14 +204,13 @@ class World
     
     for (const blob of blobs) {
       if (!blob.assigned) {
-        this.playerPlane(new PlayerPlane(blob.id, blob.x, blob.y, 1.0))
+        this.addPlayerPlane(new PlayerPlane(blob.id, blob.x, blob.y, 1.0))
       }
     }
   }
 
   draw()
   {
-    image(images.plaza, 0, 0)
     for (const playerPlane of this.playerPlanes.values())
     {
       playerPlane.draw()
@@ -237,7 +227,7 @@ class World
     this.texts.add(text)
   }
 
-  playerPlane(playerPlane)
+  addPlayerPlane(playerPlane)
   {
     this.playerPlanes.add(playerPlane)
   }
