@@ -91,7 +91,7 @@ class Text extends Entity
 {
   constructor(cadena, y)
   {
-    super(0, y, Habitacion.ancho, Text.size * 4)
+    super(0, y, World.width, Text.size * 4)
     this.cadena = cadena
   }
 
@@ -253,6 +253,8 @@ function setup()
   api.tracking.connect()
   
   worldInstance = new World()
+
+  worldInstance.addText(Text("asdf", 10));
 }
 
 const images = {}
@@ -270,6 +272,7 @@ function f(name, first, last)
 
 function preload() {
   const url = '/media/usera4300b002b'
+  const urlVictor = '/media/usere205ee2a5d'
 
   animations.plane = { frameList: f("idle", 0, 2), timePerFrame: 500, loop: true }
 
