@@ -83,6 +83,7 @@ class AnimatedEntity extends Entity
 
   draw(x = this.x, y = this.y)
   {
+    // This is a p5js function to draw sprites
     image(this.image, x, y)
   }
 }
@@ -158,7 +159,7 @@ class PlayerPlane extends Plane
 
   assignBlob(f)
   {
-    const blob = this.blobs.find(f)
+    const blob = worldInstance.blobs.find(f)
 
     if (blob !== undefined)
     {
@@ -173,7 +174,7 @@ class PlayerPlane extends Plane
     }
     else
     {
-      this.deletePlayerPlane(this)
+      worldInstance.deletePlayerPlane(this)
     }
   }
 
@@ -202,8 +203,10 @@ class World
       playerPlane.update()
     }
     
-    for (const blob of blobs) {
-      if (!blob.assigned) {
+    for (const blob of blobs)
+    {
+      if (!blob.assigned)
+      {
         this.addPlayerPlane(new PlayerPlane(blob.id, blob.x, blob.y, 1.0))
       }
     }
@@ -263,16 +266,16 @@ function range(from, to)
   return [...Array(to).keys()].slice(from)
 }
 
-function f(name, first, last)
+function getSpritesList(name, first, last)
 {
-  return range(last, first).map(i => `${name}.ani.${i.toString().padStart(4, '0')}`)
+  return range(first, last).map(i => `${name}.ani.${i.toString().padStart(4, '0')}`)
 }
 
 function preload() {
   const url = '/media/usera4300b002b'
   const urlVictor = '/media/usere205ee2a5d'
 
-  animations.plane = { frameList: f("plane", 0, 2), timePerFrame: 500, loop: true }
+  animations.plane = { frameList: getSpritesList("plane", 0, 2), timePerFrame: 500, loop: true }
 
   const pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
   for (const png of pngs)
