@@ -113,6 +113,7 @@ class Plane extends AnimatedEntity
     super("plane", x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
+    this.isEnemy = true
   }
 
   update()
@@ -128,7 +129,7 @@ class Plane extends AnimatedEntity
   shoot()
   {
     print("PEW!")
-    let bullet = new Bullet(false, this.x, this.y)
+    let bullet = new Bullet(this.isEnemy, this.x, this.y)
     worldInstance.addBullet(bullet)
   }
 }
@@ -142,6 +143,8 @@ class PlayerPlane extends Plane
   {
     super(x, y, interShootTime)
     this.id = id
+    // Override isEnemy field to be false
+    this.isEnemy = false
   }
 
   IsBlobAtDistance(blob)
@@ -201,9 +204,9 @@ class Bullet extends Entity
   update()
   {
     // Move up or down depending on bullet's shooter
-    this.y += (!this.isFromEnemy ? -Bullet.speed * delta() : Bullet.speed * delta())
+    this.y += (!this.isFromEnemy ? -1.0 : 1.0) * Bullet.speed * delta()
     // Check bounds
-    if (this.y + (this.h / 2.0) < 0 || this.y + (this.h / 2.0) > World.width)
+    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width)
     {
       // Delete bullet out of bounds
       worldInstance.deleteBullet(this)
