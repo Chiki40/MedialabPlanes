@@ -273,7 +273,7 @@ function range(from, to)
 
 function getSpritesList(name, first, last)
 {
-  return range(first, last).map(i => `${name}${i.toString().padStart(2, '0')}`)
+  return range(first, last).map(i => `${name}_${i.toString().padStart(2, '0')}`)
 }
 
 function preload() {
