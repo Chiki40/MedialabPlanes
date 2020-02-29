@@ -1,7 +1,7 @@
 function delta()
 {
   const fr = frameRate()
-  return fr === 0 ? 1 : 1000 / fr
+  return fr === 0 ? 1 : 1 / fr
 }
 
 class Entity
@@ -127,6 +127,9 @@ class Plane extends AnimatedEntity
   
   shoot()
   {
+    print("PEW!")
+    let bullet = new Bullet(false, this.x, this.y)
+    worldInstance.addBullet(bullet)
   }
 }
 
@@ -174,6 +177,7 @@ class PlayerPlane extends Plane
     }
     else
     {
+      // Delete existing player
       worldInstance.deletePlayerPlane(this)
     }
   }
@@ -186,11 +190,43 @@ class PlayerPlane extends Plane
 
 PlayerPlane.trackingDistance = 10
 
+class Bullet extends Entity
+{
+  constructor(isFromEnemy, x = 0, y = 0, w = Bullet.width, h = Bullet.height)
+  {
+    super(x, y, w, h)
+    this.isFromEnemy = isFromEnemy
+  }
+  
+  update()
+  {
+    // Move up or down depending on bullet's shooter
+    this.y += (!this.isFromEnemy ? -Bullet.speed * delta() : Bullet.speed * delta())
+    // Check bounds
+    if (this.y + (this.h / 2.0) < 0 || this.y + (this.h / 2.0) > World.width)
+    {
+      // Delete bullet out of bounds
+      worldInstance.deleteBullet(this)
+    }
+  }
+  
+  draw()
+  {
+    // Sprite also depends on bullet's shooter as it may face up or down
+    image(!this.isFromEnemy ? images.bulletUp : images.bulletDown, this.x, this.y)
+  }
+}
+
+Bullet.speed = 25.0
+Bullet.width = 8
+Bullet.height = 13
+
 class World
 {
   constructor()
   {
     this.playerPlanes = new Set()
+    this.bullets = new Set()
     this.texts = new Set()
   }
 
@@ -198,16 +234,24 @@ class World
   {
     this.blobs = blobs
     
+    // Players
     for (const playerPlane of this.playerPlanes.values())
     {
       playerPlane.update()
     }
     
+    // Bullets
+    for (const bullet of this.bullets.values())
+    {
+      bullet.update()
+    }
+    
+    // New player
     for (const blob of blobs)
     {
       if (!blob.assigned)
       {
-        this.addPlayerPlane(new PlayerPlane(blob.id, blob.x, blob.y, 1.0))
+        this.addPlayerPlane(new PlayerPlane(blob.id, blob.x, blob.y, 10.0))
       }
     }
   }
@@ -221,6 +265,12 @@ class World
     for (const playerPlane of this.playerPlanes.values())
     {
       playerPlane.draw()
+    }
+    
+    // Bullets
+    for (const bullet of this.bullets.values())
+    {
+      bullet.draw()
     }
     
     // Texts
@@ -243,6 +293,16 @@ class World
   deletePlayerPlane(playerPlane)
   {
     this.playerPlanes.delete(playerPlane)
+  }
+  
+  addBullet(bullet)
+  {
+    this.bullets.add(bullet)
+  }
+  
+  deleteBullet(bullet)
+  {
+    this.bullets.delete(bullet)
   }
 }
 
@@ -280,7 +340,7 @@ function preload() {
   const url = '/media/usera4300b002b'
   const urlVictor = '/media/usere205ee2a5d'
 
-  animations.plane = { frameList: getSpritesList("plane_idle", 0, 2), timePerFrame: 500, loop: true }
+  animations.plane = { frameList: getSpritesList("plane_idle", 0, 2), timePerFrame: 0.5, loop: true }
   print(animations.plane.frameList)
 
   const pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
@@ -288,7 +348,9 @@ function preload() {
   {
     images[png] = loadImage(`${url}/${png}.png`)
   }
-  images["background"] = loadImage(`${url}/background.png`)
+  images.bulletUp = loadImage(`${url}/bullet_up.png`)
+  images.bulletDown = loadImage(`${url}/bullet_down.png`)
+  images.background = loadImage(`${url}/background.png`)
 }
 
 function draw()
