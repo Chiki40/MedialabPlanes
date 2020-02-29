@@ -253,8 +253,6 @@ function setup()
   api.tracking.connect()
   
   worldInstance = new World()
-
-  worldInstance.addText(Text("asdf", 10));
 }
 
 const images = {}
@@ -274,12 +272,12 @@ function preload() {
   const url = '/media/usera4300b002b'
   const urlVictor = '/media/usere205ee2a5d'
 
-  animations.plane = { frameList: f("idle", 0, 2), timePerFrame: 500, loop: true }
+  animations.plane = { frameList: f("plane", 0, 2), timePerFrame: 500, loop: true }
 
   const pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
   for (const png of pngs)
   {
-    images[png] = loadImage(`${url}/${png}.png`)
+    images[png] = loadImage(`${urlVictor}/${png}.png`)
   }
 }
 
@@ -293,5 +291,6 @@ function drawWorld()
   worldInstance.update(
     api.tracking.getBlobs()
   )
+  worldInstance.addText(new Text("asdf", 10));
   worldInstance.draw()
 }
