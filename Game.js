@@ -131,7 +131,7 @@ class Plane extends AnimatedEntity
 }
 
 Plane.width = 18
-Plane.height = 23
+Plane.height = 18
 
 class PlayerPlane extends Plane
 {
@@ -214,11 +214,16 @@ class World
 
   draw()
   {
+    // Background
+    image(images.background, 0, 0)
+    
+    // Players
     for (const playerPlane of this.playerPlanes.values())
     {
       playerPlane.draw()
     }
-
+    
+    // Texts
     for (const text of this.texts.values())
     {
       text.draw()
@@ -268,28 +273,25 @@ function range(from, to)
 
 function getSpritesList(name, first, last)
 {
-  return range(first, last).map(i => `${name}.ani.${i.toString().padStart(4, '0')}`)
+  return range(first, last).map(i => `${name}${i.toString().padStart(2, '0')}`)
 }
 
 function preload() {
   const url = '/media/usera4300b002b'
   const urlVictor = '/media/usere205ee2a5d'
 
-  animations.plane = { frameList: getSpritesList("plane", 0, 2), timePerFrame: 500, loop: true }
+  animations.plane = { frameList: getSpritesList("plane_idle", 0, 2), timePerFrame: 500, loop: true }
+  print(animations.plane.frameList)
 
   const pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
   for (const png of pngs)
   {
-    images[png] = loadImage(`${urlVictor}/${png}.png`)
+    images[png] = loadImage(`${url}/${png}.png`)
   }
+  images["background"] = loadImage(`${url}/background.png`)
 }
 
 function draw()
-{
-  drawWorld()
-}
-
-function drawWorld()
 {
   worldInstance.update(
     api.tracking.getBlobs()
