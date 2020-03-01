@@ -4,10 +4,25 @@ function delta()
   return fr === 0 ? 1 : 1 / fr
 }
 
+function collision(X1, Y1, W1, H1, X2, Y2, W2, H2)
+{
+  if (X1 < X2 + W2 &&
+    X1 + W1 > X2 &&
+    Y1 < Y2 + H2 &&
+    Y1 + H1 > Y2)
+   {
+     return true;
+   }
+
+  return false;
+}
+
 class Entity
 {
   constructor(x = 0, y = 0, w, h = w)
   {
+    this.x = x;
+    this.y = y;
     this.move(x, y)
     this.w = w
     this.h = h
@@ -108,12 +123,15 @@ Text.size = undefined
 
 class Plane extends AnimatedEntity
 {
-  constructor(x, y, interShootTime, w = Plane.width, h = Plane.height)
+  constructor(x, y, interShootTime, velocity, w = Plane.width, h = Plane.height)
   {
     super("plane", x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
     this.isEnemy = true
+    this.destroyPoints = 10;
+    this.velocityDown = velocity;
+    this.live = 1;
   }
 
   update()
@@ -124,16 +142,30 @@ class Plane extends AnimatedEntity
       this.shoot()
       this.currentInterShootTime = 0
     }
+
+    this.moveDown();
   }
   
   shoot()
   {
-    print("PEW!")
+    //print("PEW!")
     let bullet = new Bullet(this.isEnemy, this.x, this.y)
     worldInstance.addBullet(bullet)
   }
-}
 
+  moveDown()
+  {
+    //print(this.x)
+    //print("mi posicion es [" + this.x + "," + this.y+ "]");
+    this.y += delta() * this.velocityDown;
+
+    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width)
+    {
+      // Delete bullet out of bounds
+      worldInstance.deletePlane(this)
+    }
+  }
+}
 Plane.width = 18
 Plane.height = 18
 
@@ -141,7 +173,7 @@ class PlayerPlane extends Plane
 {
   constructor(id, x, y, interShootTime)
   {
-    super(x, y, interShootTime)
+    super(x, y, interShootTime, 0)
     this.id = id
     // Override isEnemy field to be false
     this.isEnemy = false
@@ -189,9 +221,66 @@ class PlayerPlane extends Plane
   {
     this.assignBlob(b => this.IsMyBlob(b))
   }
+
+  moveDown()
+  {
+    //do nothing, the player cant move
+  }
+}
+PlayerPlane.trackingDistance = 10
+
+BasicPlane_velocityDown = 2;
+BasicPlane_interShootTime = 10;
+BasicPlane_prob = 70;
+class BasicPlane extends Plane 
+{
+  constructor(x, y)
+  {
+    super(x, y, BasicPlane_interShootTime, BasicPlane_velocityDown);
+    this.points = 20;//the points could be different for different types of planes
+    this.live = 1;
+  }
+
+  moveDown()
+  {
+    super.moveDown();
+    //this plane dont do anything more
+  }
+
+  draw()
+  {
+    tint(255, 0, 0); // Tint blue
+    super.draw();
+    noTint(); // Disable tint
+  }
 }
 
-PlayerPlane.trackingDistance = 10
+HardPlane_velocityDown = 4;
+HardPlane_interShootTime = 5;
+HardPlane_prob = 30;
+class HardPlane extends Plane 
+{
+  constructor(x, y)
+  {
+    super(x, y, HardPlane_interShootTime, HardPlane_velocityDown);
+    this.points = 100;//the points could be different for different types of planes
+    this.live = 5;
+  }
+
+  moveD()
+  {
+    super.moveDown();
+    //this plane dont do anything more
+  }
+
+  draw()
+  {
+    tint(0, 255, 0); // Tint green
+    super.draw();
+    noTint(); // Disable tint
+  }
+}
+
 
 class Bullet extends Entity
 {
@@ -224,6 +313,8 @@ Bullet.speed = 25.0
 Bullet.width = 8
 Bullet.height = 13
 
+CurrentScore = 0;
+
 class World
 {
   constructor()
@@ -231,12 +322,21 @@ class World
     this.playerPlanes = new Set()
     this.bullets = new Set()
     this.texts = new Set()
+    this.enemies = new Set()
+    
   }
 
   update(blobs)
   {
     this.blobs = blobs
+
+    this.manageEnemies();
     
+    for (const enemy of this.enemies.values())
+    {
+      enemy.update()
+    }
+
     // Players
     for (const playerPlane of this.playerPlanes.values())
     {
@@ -248,8 +348,10 @@ class World
     {
       bullet.update()
     }
+
+    this.checkCollisions();
     
-    // New player
+    // New player  
     for (const blob of blobs)
     {
       if (!blob.assigned)
@@ -259,11 +361,90 @@ class World
     }
   }
 
+  checkCollisions()
+  {
+    for (const bullet of this.bullets.values())
+    {
+      if(!bullet.isFromEnemy)
+      {
+        for (const enemy of this.enemies.values())
+        {
+          if(collision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, enemy.width, enemy.height))
+          {
+            //hay colision 
+            enemy.live--;
+            if(enemy.live == 0)
+            {
+              CurrentScore += enemy.points
+              this.deletePlane(enemy);//I assume that this dont broke anything
+            }
+            this.deleteBullet(bullet);//I assume that this dont broke anything
+          }
+        }
+      }
+      else
+      {
+        //its a enemy bullet, check collision with player
+        for (const player of this.playerPlanes.values())
+        {
+          if(collision(bullet.x, bullet.y, bullet.width, bullet.height,player.x, player.y, player.width, player.height))
+          {
+            player.live--;
+            if(player.live == 0)
+            {
+              print("hemos muerto")
+            }
+          }
+        }
+      }
+    }
+
+
+
+  }
+
+  manageEnemies()
+  {
+    
+    if(this.enemies.size < 2)
+    {
+      let numberToGenerate = random(2, 4);//allways will be from 4 to 6 enemies
+      for(let i = 0; i < numberToGenerate; ++i)
+      {
+        this.generateRandomEnemy();
+      }
+    }
+    
+  }
+
+  generateRandomEnemy()
+  {
+    let randomValue = random(0, 100);
+    let randomX = random(0, World.width);
+    if(randomValue < HardPlane_prob)
+    {
+      //hard plane
+      this.enemies.add(new HardPlane(randomX,0));//this could be random
+    }
+    else
+    {
+      //basic plane
+      this.enemies.add(new BasicPlane(randomX,0));//this could be random
+    }
+    //if we want another types of planes, add more logic here
+  }
+
   draw()
   {
     // Background
     image(images.background, 0, 0)
     
+    // Bullets
+    for (const enemy of this.enemies.values())
+    {
+      enemy.draw()
+    }
+
     // Players
     for (const playerPlane of this.playerPlanes.values())
     {
@@ -306,6 +487,10 @@ class World
   deleteBullet(bullet)
   {
     this.bullets.delete(bullet)
+  }
+  deletePlane(plane)
+  {
+    this.enemies.delete(plane)
   }
 }
 
@@ -361,6 +546,6 @@ function draw()
   worldInstance.update(
     api.tracking.getBlobs()
   )
-  worldInstance.addText(new Text("asdf", 10));
+  //worldInstance.addText(new Text("asdf", 10));
   worldInstance.draw()
 }
