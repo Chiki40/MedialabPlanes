@@ -11,19 +11,18 @@ function collision(X1, Y1, W1, H1, X2, Y2, W2, H2)
     Y1 < Y2 + H2 &&
     Y1 + H1 > Y2)
    {
-     return true;
+     return true
    }
 
-  return false;
+  return false
 }
 
 class Entity
 {
   constructor(x = 0, y = 0, w, h = w)
   {
-    this.x = x;
-    this.y = y;
-    this.move(x, y)
+    this.x = x
+    this.y = y
     this.w = w
     this.h = h
   }
@@ -118,7 +117,6 @@ class Text extends Entity
     text(this.cadena, this.x, this.y, this.w, this.h)
   }
 }
-
 Text.size = undefined
 
 class Plane extends AnimatedEntity
@@ -129,9 +127,9 @@ class Plane extends AnimatedEntity
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
     this.isEnemy = true
-    this.destroyPoints = 10;
-    this.velocityDown = velocity;
-    this.live = 1;
+    this.destroyPoints = 10
+    this.velocityDown = velocity
+    this.live = 1
   }
 
   update()
@@ -143,7 +141,7 @@ class Plane extends AnimatedEntity
       this.currentInterShootTime = 0
     }
 
-    this.moveDown();
+    this.moveDown()
   }
   
   shoot()
@@ -156,8 +154,8 @@ class Plane extends AnimatedEntity
   moveDown()
   {
     //print(this.x)
-    //print("mi posicion es [" + this.x + "," + this.y+ "]");
-    this.y += delta() * this.velocityDown;
+    //print("mi posicion es [" + this.x + "," + this.y+ "]")
+    this.y += delta() * this.velocityDown
 
     if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width)
     {
@@ -229,58 +227,57 @@ class PlayerPlane extends Plane
 }
 PlayerPlane.trackingDistance = 10
 
-BasicPlane_velocityDown = 2;
-BasicPlane_interShootTime = 10;
-BasicPlane_prob = 70;
+BasicPlane_velocityDown = 2
+BasicPlane_interShootTime = 10
+BasicPlane_prob = 70
 class BasicPlane extends Plane 
 {
   constructor(x, y)
   {
-    super(x, y, BasicPlane_interShootTime, BasicPlane_velocityDown);
-    this.points = 20;//the points could be different for different types of planes
-    this.live = 1;
+    super(x, y, BasicPlane_interShootTime, BasicPlane_velocityDown)
+    this.points = 20 //the points could be different for different types of planes
+    this.live = 1
   }
 
   moveDown()
   {
-    super.moveDown();
+    super.moveDown()
     //this plane dont do anything more
   }
 
   draw()
   {
-    tint(255, 0, 0); // Tint blue
-    super.draw();
-    noTint(); // Disable tint
+    tint(255, 0, 0) // Tint blue
+    super.draw()
+    noTint() // Disable tint
   }
 }
 
-HardPlane_velocityDown = 4;
-HardPlane_interShootTime = 5;
-HardPlane_prob = 30;
+HardPlane_velocityDown = 4
+HardPlane_interShootTime = 5
+HardPlane_prob = 30
 class HardPlane extends Plane 
 {
   constructor(x, y)
   {
-    super(x, y, HardPlane_interShootTime, HardPlane_velocityDown);
-    this.points = 100;//the points could be different for different types of planes
-    this.live = 5;
+    super(x, y, HardPlane_interShootTime, HardPlane_velocityDown)
+    this.points = 100 //the points could be different for different types of planes
+    this.live = 5
   }
 
   moveD()
   {
-    super.moveDown();
+    super.moveDown()
     //this plane dont do anything more
   }
 
   draw()
   {
-    tint(0, 255, 0); // Tint green
-    super.draw();
-    noTint(); // Disable tint
+    tint(0, 255, 0) // Tint green
+    super.draw()
+    noTint() // Disable tint
   }
 }
-
 
 class Bullet extends Entity
 {
@@ -304,25 +301,86 @@ class Bullet extends Entity
   
   draw()
   {
+    if (this.isFromEnemy)
+    {
+      tint(255, 0, 0) // Tint red
+    }
     // Sprite also depends on bullet's shooter as it may face up or down
-    image(!this.isFromEnemy ? images.bulletUp : images.bulletDown, this.x, this.y)
+    image(images.bullet, this.x, this.y)
+    if (this.isFromEnemy)
+    {
+      noTint() // Disable tint
+    }
   }
 }
-
 Bullet.speed = 25.0
 Bullet.width = 8
-Bullet.height = 13
+Bullet.height = 8
 
-CurrentScore = 0;
+class PowerUp extends Entity
+{
+  constructor(x = 0, y = 0, w = PowerUp.width, h = PowerUp.height)
+  {
+    super(x, y, w, h)
+    this.image = undefined // Overriden by each type of PowerUp
+    this.remainingLifeTime = PowerUp.lifeTime
+  }
+  
+  update()
+  {
+    this.remainingLifeTime -= delta()
+    // Check bounds
+    if (this.remainingLifeTime <= 0)
+    {
+      print("PowerUp disappears")
+      // Delete PowerUp out of bounds
+      worldInstance.deletePowerUp(this)
+    }
+  }
+  
+  draw()
+  {
+    if (this.image !== undefined)
+    {
+      image(this.image, this.x, this.y)
+    }
+  }
+  
+  applyEffect()
+  {
+  }
+}
+PowerUp.lifeTime = 8.0
+PowerUp.width = 8
+PowerUp.height = 8
 
+class ScorePowerUp extends PowerUp
+{
+  constructor(x = 0, y = 0)
+  {
+    super(x, y)
+    this.image = images.scorePowerUp
+  }
+  
+  applyEffect()
+  {
+    super.applyEffect()
+    CurrentScore += ScorePowerUp.ScoreGiven
+  }
+}
+ScorePowerUp.ScoreGiven = 50
+
+CurrentScore = 0
 class World
 {
   constructor()
   {
     this.playerPlanes = new Set()
     this.bullets = new Set()
+    this.powerUps = new Set()
     this.texts = new Set()
     this.enemies = new Set()
+    this.timeForNextPowerUp = World.TimeBetweenPowerUps
     
   }
 
@@ -330,7 +388,8 @@ class World
   {
     this.blobs = blobs
 
-    this.manageEnemies();
+    this.manageEnemies()
+    this.managePowerUps()
     
     for (const enemy of this.enemies.values())
     {
@@ -348,8 +407,14 @@ class World
     {
       bullet.update()
     }
+    
+    // PowerUps
+    for (const powerUp of this.powerUps.values())
+    {
+      powerUp.update()
+    }
 
-    this.checkCollisions();
+    this.checkCollisions()
     
     // New player  
     for (const blob of blobs)
@@ -372,13 +437,13 @@ class World
           if(collision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, enemy.width, enemy.height))
           {
             //hay colision 
-            enemy.live--;
+            enemy.live--
             if(enemy.live == 0)
             {
               CurrentScore += enemy.points
-              this.deletePlane(enemy);//I assume that this dont broke anything
+              this.deletePlane(enemy) //I assume that this dont broke anything
             }
-            this.deleteBullet(bullet);//I assume that this dont broke anything
+            this.deleteBullet(bullet) //I assume that this dont broke anything
           }
         }
       }
@@ -387,9 +452,9 @@ class World
         //its a enemy bullet, check collision with player
         for (const player of this.playerPlanes.values())
         {
-          if(collision(bullet.x, bullet.y, bullet.width, bullet.height,player.x, player.y, player.width, player.height))
+          if(collision(bullet.x, bullet.y, bullet.width, bullet.height, player.x, player.y, player.width, player.height))
           {
-            player.live--;
+            player.live--
             if(player.live == 0)
             {
               print("hemos muerto")
@@ -398,40 +463,70 @@ class World
         }
       }
     }
-
-
-
+    
+    for (const powerUp of this.powerUps.values())
+    {
+        for (const player of this.playerPlanes.values())
+        {
+          if(collision(powerUp.x, powerUp.y, powerUp.width, powerUp.height, player.x, player.y, player.width, player.height))
+          {
+            powerUp.applyEffect()
+            this.deletePowerUp(powerUp)
+            print("Picked up powerUp")
+          }
+        }
+    }
   }
 
   manageEnemies()
   {
-    
     if(this.enemies.size < 2)
     {
-      let numberToGenerate = random(2, 4);//allways will be from 4 to 6 enemies
+      let numberToGenerate = random(2, 4) //allways will be from 4 to 6 enemies
       for(let i = 0; i < numberToGenerate; ++i)
       {
-        this.generateRandomEnemy();
+        this.generateRandomEnemy()
       }
     }
-    
+  }
+  
+  managePowerUps()
+  {
+    if(this.powerUps.size == 0)
+    {
+      this.timeForNextPowerUp -= delta()
+      if (this.timeForNextPowerUp <= 0)
+      {
+        this.generateRandomPowerUp()
+        this.timeForNextPowerUp = World.TimeBetweenPowerUps
+      }
+    }
   }
 
   generateRandomEnemy()
   {
-    let randomValue = random(0, 100);
-    let randomX = random(0, World.width);
+    let randomValue = random(0, 100)
+    let randomX = random(0, World.width)
     if(randomValue < HardPlane_prob)
     {
       //hard plane
-      this.enemies.add(new HardPlane(randomX,0));//this could be random
+      this.enemies.add(new HardPlane(randomX,0)) //this could be random
     }
     else
     {
       //basic plane
-      this.enemies.add(new BasicPlane(randomX,0));//this could be random
+      this.enemies.add(new BasicPlane(randomX,0)) //this could be random
     }
     //if we want another types of planes, add more logic here
+  }
+  
+  generateRandomPowerUp()
+  {
+    print("PowerUp appears")
+    let randomX = random(0, World.width)
+    let randomY = random(World.height / 2.0, World.height)
+    this.powerUps.add(new ScorePowerUp(randomX, randomY))
+    //if we want another types of powerUps, add more logic here
   }
 
   draw()
@@ -457,6 +552,12 @@ class World
       bullet.draw()
     }
     
+    // PowerUps
+    for (const powerUp of this.powerUps.values())
+    {
+      powerUp.draw()
+    }
+    
     // Texts
     for (const text of this.texts.values())
     {
@@ -468,25 +569,30 @@ class World
   {
     this.texts.add(text)
   }
-
   addPlayerPlane(playerPlane)
   {
     this.playerPlanes.add(playerPlane)
   }
-  
   deletePlayerPlane(playerPlane)
   {
     this.playerPlanes.delete(playerPlane)
   }
-  
   addBullet(bullet)
   {
     this.bullets.add(bullet)
+  }
+  addPowerUp(powerUp)
+  {
+    this.powerUps.add(powerUp)
   }
   
   deleteBullet(bullet)
   {
     this.bullets.delete(bullet)
+  }
+  deletePowerUp(powerUp)
+  {
+    this.powerUps.delete(powerUp)
   }
   deletePlane(plane)
   {
@@ -496,6 +602,7 @@ class World
 
 World.width = 192
 World.height = 157
+World.TimeBetweenPowerUps = 10
 
 function setup()
 {
@@ -526,7 +633,6 @@ function getSpritesList(name, first, last)
 
 function preload() {
   const url = '/media/usera4300b002b'
-  const urlVictor = '/media/usere205ee2a5d'
 
   animations.plane = { frameList: getSpritesList("plane_idle", 0, 2), timePerFrame: 0.5, loop: true }
   print(animations.plane.frameList)
@@ -536,8 +642,8 @@ function preload() {
   {
     images[png] = loadImage(`${url}/${png}.png`)
   }
-  images.bulletUp = loadImage(`${url}/bullet_up.png`)
-  images.bulletDown = loadImage(`${url}/bullet_down.png`)
+  images.bullet = loadImage(`${url}/bullet_up.png`)
+  images.scorePowerUp = loadImage(`${url}/powerup_score.png`)
   images.background = loadImage(`${url}/background.png`)
 }
 
@@ -546,6 +652,6 @@ function draw()
   worldInstance.update(
     api.tracking.getBlobs()
   )
-  //worldInstance.addText(new Text("asdf", 10));
+  //worldInstance.addText(new Text("asdf", 10))
   worldInstance.draw()
 }
