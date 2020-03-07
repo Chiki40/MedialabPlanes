@@ -26,12 +26,6 @@ class Entity
     this.w = w
     this.h = h
   }
-  
-  move(x, y)
-  {
-    this.x = x
-    this.y = y
-  }
 
   draw()
   {
@@ -121,15 +115,18 @@ Text.size = undefined
 
 class Plane extends AnimatedEntity
 {
-  constructor(x, y, interShootTime, velocity, w = Plane.width, h = Plane.height)
+  constructor(x, y, interShootTime, w = Plane.width, h = Plane.height)
   {
     super("plane", x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
-    this.isEnemy = true
-    this.destroyPoints = 10
-    this.velocityDown = velocity
-    this.live = 1
+    this.lives = 1
+  }
+  
+  shoot()
+  {
+    let bullet = new Bullet(this.isEnemy, this.x, this.y)
+    worldInstance.addBullet(bullet)
   }
 
   update()
@@ -140,57 +137,54 @@ class Plane extends AnimatedEntity
       this.shoot()
       this.currentInterShootTime = 0
     }
-
-    this.moveDown()
   }
   
-  shoot()
+  draw()
   {
-    //print("PEW!")
-    let bullet = new Bullet(this.isEnemy, this.x, this.y)
-    worldInstance.addBullet(bullet)
-  }
-
-  moveDown()
-  {
-    //print(this.x)
-    //print("mi posicion es [" + this.x + "," + this.y+ "]")
-    this.y += delta() * this.velocityDown
-
-    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width)
-    {
-      // Delete bullet out of bounds
-      worldInstance.deletePlane(this)
-    }
+    super.draw()
   }
 }
 Plane.width = 18
 Plane.height = 18
+
+class EnemyPlane extends Plane
+{
+  constructor(x, y, interShootTime, velocity)
+  {
+    super(x, y, interShootTime)
+    this.isEnemy = true
+    this.velocity = velocity
+  }
+  
+  move()
+  {
+    this.y += delta() * this.velocity
+    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width)
+    {
+      // Delete plane out of bounds
+      worldInstance.deleteEnemyPlane(this)
+    }
+  }
+  
+  update()
+  {
+    super.update()
+    this.move()
+  }
+  
+  draw()
+  {
+    super.draw()
+  }
+}
 
 class PlayerPlane extends Plane
 {
   constructor(id, x, y, interShootTime)
   {
     super(x, y, interShootTime, 0)
-    this.id = id
-    // Override isEnemy field to be false
     this.isEnemy = false
-  }
-
-  IsBlobAtDistance(blob)
-  {
-    return dist(blob.x, blob.y, this.x, this.y) < PlayerPlane.trackingDistance
-  }
-
-  IsMyBlob(blob)
-  {
-    return blob.id === this.id
-  }
-
-  update()
-  {
-    super.update()
-    this.SyncWithBlobsId()
+    this.id = id
   }
 
   assignBlob(f)
@@ -203,7 +197,8 @@ class PlayerPlane extends Plane
       const y = blob.y - this.y
       if (!(x === 0 && y === 0))
       {
-        this.move(blob.x, blob.y)
+        this.x = blob.x
+        this.y = blob.y
         this.dir = atan2(y, x)
       }
       blob.assigned = true
@@ -214,61 +209,75 @@ class PlayerPlane extends Plane
       worldInstance.deletePlayerPlane(this)
     }
   }
-
-  SyncWithBlobsId()
+  
+  IsMyBlob(blob)
   {
-    this.assignBlob(b => this.IsMyBlob(b))
+    return blob.id === this.id
   }
 
-  moveDown()
+  update()
   {
-    //do nothing, the player cant move
+    super.update()
+    // Player movement via camera tracking
+    this.assignBlob(b => this.IsMyBlob(b))
+  }
+  
+  draw()
+  {
+    super.draw()
   }
 }
 PlayerPlane.trackingDistance = 10
 
-BasicPlane_velocityDown = 2
-BasicPlane_interShootTime = 10
-BasicPlane_prob = 70
-class BasicPlane extends Plane 
+class BasicPlane extends EnemyPlane 
 {
   constructor(x, y)
   {
-    super(x, y, BasicPlane_interShootTime, BasicPlane_velocityDown)
-    this.points = 20 //the points could be different for different types of planes
-    this.live = 1
+    super(x, y, BasicPlane.interShootTime, BasicPlane.velocity)
+    this.points = 20
+    this.lives = 1
+  }
+  
+  update()
+  {
+    super.update()
   }
 
-  moveDown()
+  move()
   {
-    super.moveDown()
-    //this plane dont do anything more
+    super.move()
+    // this plane doesn't do anything more
   }
 
   draw()
   {
-    tint(255, 0, 0) // Tint blue
+    tint(0, 0, 255) // Tint blue
     super.draw()
     noTint() // Disable tint
   }
 }
+BasicPlane.velocity = 2
+BasicPlane.interShootTime = 10
+BasicPlane.prob = 70
 
-HardPlane_velocityDown = 4
-HardPlane_interShootTime = 5
-HardPlane_prob = 30
-class HardPlane extends Plane 
+class HardPlane extends EnemyPlane 
 {
   constructor(x, y)
   {
-    super(x, y, HardPlane_interShootTime, HardPlane_velocityDown)
-    this.points = 100 //the points could be different for different types of planes
-    this.live = 5
+    super(x, y, HardPlane.interShootTime, HardPlane.velocity)
+    this.points = 100
+    this.lives = 5
   }
 
-  moveD()
+  update()
   {
-    super.moveDown()
-    //this plane dont do anything more
+    super.update()
+  }
+
+  move()
+  {
+    super.move()
+    // this plane doesn't do anything more
   }
 
   draw()
@@ -278,6 +287,9 @@ class HardPlane extends Plane
     noTint() // Disable tint
   }
 }
+HardPlane.velocity = 4
+HardPlane.interShootTime = 5
+HardPlane.prob = 30
 
 class Bullet extends Entity
 {
@@ -428,53 +440,61 @@ class World
 
   checkCollisions()
   {
-    for (const bullet of this.bullets.values())
+    for (let i = this.bullets.length - 1; i >= 0; --i)
     {
-      if(!bullet.isFromEnemy)
+      let bullet = this.bullets[i]
+      if (!bullet.isFromEnemy)
       {
-        for (const enemy of this.enemies.values())
+        for (let j = this.enemies.length - 1; j >= 0; --j)
         {
-          if(collision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, enemy.width, enemy.height))
+          let enemy = this.enemies[j]
+          if (collision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, enemy.width, enemy.height))
           {
-            //hay colision 
-            enemy.live--
-            if(enemy.live == 0)
+            // Collision
+            enemy.lives--
+            if (enemy.lives <= 0)
             {
               CurrentScore += enemy.points
-              this.deletePlane(enemy) //I assume that this dont broke anything
+              this.deleteEnemyPlane(enemy)
             }
-            this.deleteBullet(bullet) //I assume that this dont broke anything
+            this.deleteBullet(bullet)
+            break // This bullet is destroyed, don't want it to hit anything else
           }
         }
       }
       else
       {
-        //its a enemy bullet, check collision with player
-        for (const player of this.playerPlanes.values())
+        //It's a enemy bullet, check collision with player
+        for (let j = this.playerPlanes.length - 1; j >= 0; --j)
         {
-          if(collision(bullet.x, bullet.y, bullet.width, bullet.height, player.x, player.y, player.width, player.height))
+          let player = this.playerPlanes[j]
+          if (collision(bullet.x, bullet.y, bullet.width, bullet.height, player.x, player.y, player.width, player.height))
           {
-            player.live--
-            if(player.live == 0)
+            player.lives--
+            if (player.lives <= 0)
             {
               print("hemos muerto")
             }
+            this.deleteBullet(bullet)
+            break // This bullet is destroyed, don't want it to hit anything else
           }
         }
       }
     }
     
-    for (const powerUp of this.powerUps.values())
+    for (let i = this.powerUps.length - 1; i >= 0; --i)
     {
-        for (const player of this.playerPlanes.values())
+      let powerUp = this.powerUps[i]
+      for (let j = this.playerPlanes.length - 1; j >= 0; --j)
+      {
+        let player = this.playerPlanes[j]
+        if(collision(powerUp.x, powerUp.y, powerUp.width, powerUp.height, player.x, player.y, player.width, player.height))
         {
-          if(collision(powerUp.x, powerUp.y, powerUp.width, powerUp.height, player.x, player.y, player.width, player.height))
-          {
-            powerUp.applyEffect()
-            this.deletePowerUp(powerUp)
-            print("Picked up powerUp")
-          }
+          powerUp.applyEffect()
+          this.deletePowerUp(powerUp)
+          print("Picked up powerUp")
         }
+      }
     }
   }
 
@@ -490,6 +510,23 @@ class World
     }
   }
   
+  generateRandomEnemy()
+  {
+    let randomValue = random(0, 100)
+    let randomX = random(0, World.width)
+    if(randomValue < HardPlane.prob)
+    {
+      //hard plane
+      this.enemies.add(new HardPlane(randomX, 0)) //this could be random
+    }
+    else
+    {
+      //basic plane
+      this.enemies.add(new BasicPlane(randomX, 0)) //this could be random
+    }
+    //if we want another types of planes, add more logic here
+  }
+  
   managePowerUps()
   {
     if(this.powerUps.size == 0)
@@ -501,23 +538,6 @@ class World
         this.timeForNextPowerUp = World.TimeBetweenPowerUps
       }
     }
-  }
-
-  generateRandomEnemy()
-  {
-    let randomValue = random(0, 100)
-    let randomX = random(0, World.width)
-    if(randomValue < HardPlane_prob)
-    {
-      //hard plane
-      this.enemies.add(new HardPlane(randomX,0)) //this could be random
-    }
-    else
-    {
-      //basic plane
-      this.enemies.add(new BasicPlane(randomX,0)) //this could be random
-    }
-    //if we want another types of planes, add more logic here
   }
   
   generateRandomPowerUp()
@@ -573,10 +593,6 @@ class World
   {
     this.playerPlanes.add(playerPlane)
   }
-  deletePlayerPlane(playerPlane)
-  {
-    this.playerPlanes.delete(playerPlane)
-  }
   addBullet(bullet)
   {
     this.bullets.add(bullet)
@@ -586,6 +602,10 @@ class World
     this.powerUps.add(powerUp)
   }
   
+  deletePlayerPlane(playerPlane)
+  {
+    this.playerPlanes.delete(playerPlane)
+  }
   deleteBullet(bullet)
   {
     this.bullets.delete(bullet)
@@ -594,12 +614,11 @@ class World
   {
     this.powerUps.delete(powerUp)
   }
-  deletePlane(plane)
+  deleteEnemyPlane(plane)
   {
     this.enemies.delete(plane)
   }
 }
-
 World.width = 192
 World.height = 157
 World.TimeBetweenPowerUps = 10
@@ -635,7 +654,6 @@ function preload() {
   const url = '/media/usera4300b002b'
 
   animations.plane = { frameList: getSpritesList("plane_idle", 0, 2), timePerFrame: 0.5, loop: true }
-  print(animations.plane.frameList)
 
   const pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
   for (const png of pngs)
