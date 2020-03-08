@@ -388,17 +388,41 @@ class PowerUp extends Entity
     super(x, y, w, h)
     this.image = undefined // Overriden by each type of PowerUp
     this.remainingLifeTime = PowerUp.lifeTime
+    this.remainingEffectTime = PowerUp.effectTime
+    this.callback = null;
+    this.effectActive = false;
   }
   
+  setCallback(callback)
+  {
+    this.callback = callback;
+  }
+
   update()
   {
-    this.remainingLifeTime -= delta()
-    // Check bounds
-    if (this.remainingLifeTime <= 0)
+    if(this.effectActive)
     {
-      print("PowerUp disappears")
-      // Delete PowerUp out of bounds
-      worldInstance.deletePowerUp(this)
+      this.remainingEffectTime -= delta();
+
+      if(this.remainingEffectTime <= 0)
+      {
+        thie.effectActive = false;
+        if(this.callback != null)
+        {
+          callback();
+        }
+        worldInstance.deletePowerUp(this)
+      }
+    }
+    else
+    {
+      this.remainingLifeTime -= delta()
+      if (this.remainingLifeTime <= 0)
+      {
+        print("PowerUp disappears")
+        // Delete PowerUp out of bounds
+        worldInstance.deletePowerUp(this)
+      }
     }
   }
   
@@ -412,11 +436,14 @@ class PowerUp extends Entity
   
   applyEffect()
   {
+    this.effectActive = true;
+    this.remainingEffectTime = PowerUp.effectTime;
   }
 }
 PowerUp.lifeTime = 8.0
 PowerUp.width = 8
 PowerUp.height = 8
+PowerUp.effectTime = 10.0
 
 class ScorePowerUp extends PowerUp
 {
@@ -656,7 +683,10 @@ class World
     // PowerUps
     for (const powerUp of this.powerUps.values())
     {
-      powerUp.draw()
+      if(!powerUp.effectActive)
+      {
+        powerUp.draw()
+      }
     }
     
     // Texts
