@@ -131,7 +131,7 @@ class Plane extends AnimatedEntity
   
   shoot()
   {
-    let bullet = new Bullet(this.isEnemy, this.x, this.y)
+    let bullet = new Bullet(this.isEnemy, createVector(0, 1), this.x, this.y)
     worldInstance.addBullet(bullet)
   }
 
@@ -212,6 +212,13 @@ class PlayerPlane extends Plane
     super(x, y, interShootTime, 0)
     this.isEnemy = false
     this.id = id
+    
+    // For RapidFire PowerUp
+    this.rapidFirePreviousInterShootTime = this.interShootTime
+    this.rapidFireRemainingDuration = 0.0
+    
+    // For TripleFire PowerUp
+    this.tripleFireRemainingDuration = 0.0
   }
 
   assignBlob(f)
@@ -241,12 +248,51 @@ class PlayerPlane extends Plane
   {
     return blob.id === this.id
   }
+  
+  AddRapidFireBuff(interShootTimeMultiplier, duration)
+  {
+    this.rapidFireRemainingDuration = duration
+    this.interShootTime *= interShootTimeMultiplier
+  }
+  
+  AddTripleFireBuff(duration)
+  {
+    this.tripleFireRemainingDuration = duration
+  }
+  
+  shoot()
+  {
+    super.shoot()
+    if (this.tripleFireRemainingDuration > 0)
+    {
+      let bulletLeft = new Bullet(this.isEnemy, createVector(-1, 1), this.x, this.y)
+      worldInstance.addBullet(bulletLeft)
+      let bulletRight = new Bullet(this.isEnemy, createVector(1, 1), this.x, this.y)
+      worldInstance.addBullet(bulletRight)
+    }
+  }
 
   update()
   {
     super.update()
     // Player movement via camera tracking
     this.assignBlob(b => this.IsMyBlob(b))
+    
+    // RapidFire PowerUp
+    if (this.rapidFireRemainingDuration > 0.0)
+    {
+      this.rapidFireRemainingDuration -= delta()
+      if (this.rapidFireRemainingDuration <= 0.0)
+      {
+        this.interShootTime = this.rapidFirePreviousInterShootTime
+      }
+    }
+    
+    // TripleFire PowerUp
+    if (this.tripleFireRemainingDuration > 0.0)
+    {
+      this.tripleFireRemainingDuration -= delta()
+    }
   }
   
   draw()
@@ -345,16 +391,28 @@ KamikazePlane.prob = 20
 
 class Bullet extends Entity
 {
-  constructor(isFromEnemy, x = 0, y = 0, w = Bullet.width, h = Bullet.height)
+  constructor(isFromEnemy, direction, x = 0, y = 0, w = Bullet.width, h = Bullet.height)
   {
     super(x, y, w, h)
     this.isFromEnemy = isFromEnemy
+    this.direction = direction.normalize()
+    // If bullet is from player, shooting forward means down
+    if (!this.isFromEnemy)
+    {
+      direction.y *= -1
+    }
+    else // If bullet is from enemy, shooting laterally is inverted (no enemies shoot laterally right now)
+    {
+      direction.x *= -1
+    }
   }
   
   update()
   {
     // Move up or down depending on bullet's shooter
-    this.y += (!this.isFromEnemy ? -1.0 : 1.0) * Bullet.speed * delta()
+    let movementMagnitude = Bullet.speed * delta()
+    this.x += this.direction.x * movementMagnitude
+    this.y += this.direction.y * movementMagnitude
     // Check bounds
     if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width)
     {
@@ -388,41 +446,16 @@ class PowerUp extends Entity
     super(x, y, w, h)
     this.image = undefined // Overriden by each type of PowerUp
     this.remainingLifeTime = PowerUp.lifeTime
-    this.remainingEffectTime = PowerUp.effectTime
-    this.callback = null;
-    this.effectActive = false;
-  }
-  
-  setCallback(callback)
-  {
-    this.callback = callback;
   }
 
   update()
   {
-    if(this.effectActive)
+    this.remainingLifeTime -= delta()
+    if (this.remainingLifeTime <= 0)
     {
-      this.remainingEffectTime -= delta();
-
-      if(this.remainingEffectTime <= 0)
-      {
-        thie.effectActive = false;
-        if(this.callback != null)
-        {
-          callback();
-        }
-        worldInstance.deletePowerUp(this)
-      }
-    }
-    else
-    {
-      this.remainingLifeTime -= delta()
-      if (this.remainingLifeTime <= 0)
-      {
-        print("PowerUp disappears")
-        // Delete PowerUp out of bounds
-        worldInstance.deletePowerUp(this)
-      }
+      print("PowerUp disappears")
+      // Delete PowerUp out of bounds
+      worldInstance.deletePowerUp(this)
     }
   }
   
@@ -434,16 +467,14 @@ class PowerUp extends Entity
     }
   }
   
-  applyEffect()
+  applyEffect(playerPlane)
   {
-    this.effectActive = true;
-    this.remainingEffectTime = PowerUp.effectTime;
   }
 }
+PowerUp.timeBetweenPowerUps = 10.0
 PowerUp.lifeTime = 8.0
 PowerUp.width = 8
 PowerUp.height = 8
-PowerUp.effectTime = 10.0
 
 class ScorePowerUp extends PowerUp
 {
@@ -453,13 +484,46 @@ class ScorePowerUp extends PowerUp
     this.image = images.scorePowerUp
   }
   
-  applyEffect()
+  applyEffect(playerPlane)
   {
-    super.applyEffect()
+    super.applyEffect(playerPlane)
     CurrentScore += ScorePowerUp.ScoreGiven
   }
 }
 ScorePowerUp.ScoreGiven = 50
+
+class RapidFirePowerUp extends PowerUp
+{
+  constructor(x = 0, y = 0)
+  {
+    super(x, y)
+    this.image = images.rapidFirePowerUp
+  }
+  
+  applyEffect(playerPlane)
+  {
+    super.applyEffect(playerPlane)
+    playerPlane.AddRapidFireBuff(RapidFirePowerUp.InterShootTimeMultiplier, RapidFirePowerUp.Duration)
+  }
+}
+RapidFirePowerUp.InterShootTimeMultiplier = 0.3
+RapidFirePowerUp.Duration = 10.0
+
+class TripleFirePowerUp extends PowerUp
+{
+  constructor(x = 0, y = 0)
+  {
+    super(x, y)
+    this.image = images.tripleFirePowerUp
+  }
+  
+  applyEffect(playerPlane)
+  {
+    super.applyEffect(playerPlane)
+    playerPlane.AddTripleFireBuff(TripleFirePowerUp.Duration)
+  }
+}
+TripleFirePowerUp.Duration = 10.0
 
 CurrentScore = 0
 class World
@@ -471,7 +535,7 @@ class World
     this.powerUps = new Set()
     this.texts = new Set() // <= RELAMENTE NECESITAMOS MUCHOS TEXTOS???
     this.enemies = new Set()
-    this.timeForNextPowerUp = World.TimeBetweenPowerUps
+    this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
     
     this.scoreText = new Text("TEXTO DE PRUEBA", -10)
     this.livesText = new Text("TEXTO DE PRUEBA", 10)
@@ -573,7 +637,7 @@ class World
         let player = this.playerPlanes[j]
         if(collision(powerUp.x, powerUp.y, powerUp.width, powerUp.height, player.x, player.y, player.width, player.height))
         {
-          powerUp.applyEffect()
+          powerUp.applyEffect(player)
           this.deletePowerUp(powerUp)
           print("Picked up powerUp")
         }
@@ -625,7 +689,7 @@ class World
       if (this.timeForNextPowerUp <= 0)
       {
         this.generateRandomPowerUp()
-        this.timeForNextPowerUp = World.TimeBetweenPowerUps
+        this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
       }
     }
   }
@@ -635,8 +699,22 @@ class World
     print("PowerUp appears")
     let randomX = random(0, World.width)
     let randomY = random(World.height / 2.0, World.height)
-    this.powerUps.add(new ScorePowerUp(randomX, randomY))
-    //if we want another types of powerUps, add more logic here
+    let randomType = floor(random(3))
+    print(randomType)
+    let newPowerUp = undefined
+    if (randomType == 0)
+    {
+      newPowerUp = new ScorePowerUp(randomX, randomY)
+    }
+    else if (randomType == 1)
+    {
+      newPowerUp = new RapidFirePowerUp(randomX, randomY)
+    }
+    else
+    {
+      newPowerUp = new TripleFirePowerUp(randomX, randomY)
+    }
+    this.powerUps.add(newPowerUp)
   }
 
   updateTexts()
@@ -683,10 +761,7 @@ class World
     // PowerUps
     for (const powerUp of this.powerUps.values())
     {
-      if(!powerUp.effectActive)
-      {
-        powerUp.draw()
-      }
+      powerUp.draw()
     }
     
     // Texts
@@ -735,7 +810,6 @@ class World
 }
 World.width = 192
 World.height = 157
-World.TimeBetweenPowerUps = 10
 
 function setup()
 {
@@ -776,6 +850,8 @@ function preload() {
   }
   images.bullet = loadImage(`${url}/bullet_up.png`)
   images.scorePowerUp = loadImage(`${url}/powerup_score.png`)
+  images.rapidFirePowerUp = loadImage(`${url}/powerup_score.png`)
+  images.tripleFirePowerUp = loadImage(`${url}/powerup_score.png`)
   images.background = loadImage(`${url}/background.png`)
 }
 
