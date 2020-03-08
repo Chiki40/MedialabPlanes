@@ -159,7 +159,7 @@ class EnemyPlane extends Plane
   move()
   {
     this.y += delta() * this.velocity
-    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width)
+    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.height)
     {
       // Delete plane out of bounds
       worldInstance.deleteEnemyPlane(this)
@@ -279,6 +279,12 @@ class HardPlane extends EnemyPlane
   constructor(x, y)
   {
     super(x, y, HardPlane.interShootTime, HardPlane.velocity)
+    this.movementLeft = false;
+    let randomValue = random(0, 100)
+    if(randomValue < 50)
+    {
+      this.movementLeft = true;
+    }
   }
 
   update()
@@ -289,7 +295,13 @@ class HardPlane extends EnemyPlane
   move()
   {
     super.move()
-    // this plane doesn't do anything more
+    
+    //move also in the X coor
+    this.x += delta() * this.velocity * this.movementLeft ? -1 : 1;
+    if (this.x + (this.w / 2.0) < 0 || this.x + (this.w / 2.0) > World.width)
+    {
+      this.movementLeft = !this.movementLeft;
+    }
   }
 }
 HardPlane.velocity = 4
