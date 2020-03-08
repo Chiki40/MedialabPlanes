@@ -110,6 +110,12 @@ class Text extends Entity
     stroke('black')
     text(this.cadena, this.x, this.y, this.w, this.h)
   }
+
+  setCadena(cadena)
+  {
+    this.cadena = cadena;
+  }
+
 }
 Text.size = undefined
 
@@ -249,6 +255,8 @@ class PlayerPlane extends Plane
   }
 }
 PlayerPlane.trackingDistance = 10
+PlayerPlane.lives = 10;
+
 
 class BasicPlane extends EnemyPlane 
 {
@@ -434,10 +442,12 @@ class World
     this.playerPlanes = new Set()
     this.bullets = new Set()
     this.powerUps = new Set()
-    this.texts = new Set()
+    this.texts = new Set() // <= RELAMENTE NECESITAMOS MUCHOS TEXTOS???
     this.enemies = new Set()
     this.timeForNextPowerUp = World.TimeBetweenPowerUps
     
+    this.scoreText = new Text("TEXTO DE PRUEBA", -10)
+    this.livesText = new Text("TEXTO DE PRUEBA", 10)
   }
 
   update(blobs)
@@ -480,6 +490,8 @@ class World
         this.addPlayerPlane(new PlayerPlane(blob.id, blob.x, blob.y, 10.0))
       }
     }
+
+    this.updateTexts();
   }
 
   checkCollisions()
@@ -600,6 +612,24 @@ class World
     //if we want another types of powerUps, add more logic here
   }
 
+  updateTexts()
+  {
+    let textScore = "Points: " + CurrentScore;
+    this.scoreText.setCadena(textScore); 
+
+    let livesScore = "";
+    let actualPlayer = 1;
+
+    for (const playerPlane of this.playerPlanes.values())
+    {
+      livesScore += "P" + actualPlayer + ": " + playerPlane.lives + "\t";
+      ++actualPlayer;
+    }
+
+   
+    this.livesText.setCadena(livesScore); 
+  }
+
   draw()
   {
     // Background
@@ -634,6 +664,9 @@ class World
     {
       text.draw()
     }
+
+    this.scoreText.draw();
+    this.livesText.draw();
   }
   
   addText(text)
