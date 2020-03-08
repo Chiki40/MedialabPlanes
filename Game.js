@@ -174,7 +174,28 @@ class EnemyPlane extends Plane
   
   draw()
   {
+    this.drawColorLive();
     super.draw()
+    noTint() // Disable tint
+  }
+
+  //same colos like breakout
+  drawColorLive()
+  {
+    switch(this.lives)
+    {
+      default:
+      case 1: tint(255,255,255);//white
+       break;
+      case 2: tint(255,255,0);//yellow
+       break;
+      case 3: tint(0,255,0);//green
+       break;
+      case 4: tint(255,165,0);//orange
+       break;
+      case 5: tint(255,0,0);//red
+       break;
+    }
   }
 }
 
@@ -234,8 +255,6 @@ class BasicPlane extends EnemyPlane
   constructor(x, y)
   {
     super(x, y, BasicPlane.interShootTime, BasicPlane.velocity)
-    this.points = 20
-    this.lives = 1
   }
   
   update()
@@ -248,25 +267,18 @@ class BasicPlane extends EnemyPlane
     super.move()
     // this plane doesn't do anything more
   }
-
-  draw()
-  {
-    tint(0, 0, 255) // Tint blue
-    super.draw()
-    noTint() // Disable tint
-  }
 }
 BasicPlane.velocity = 2
 BasicPlane.interShootTime = 10
-BasicPlane.prob = 70
+BasicPlane.points = 10;
+BasicPlane.lives = 2;
+BasicPlane.prob = 50
 
 class HardPlane extends EnemyPlane 
 {
   constructor(x, y)
   {
     super(x, y, HardPlane.interShootTime, HardPlane.velocity)
-    this.points = 100
-    this.lives = 5
   }
 
   update()
@@ -279,17 +291,37 @@ class HardPlane extends EnemyPlane
     super.move()
     // this plane doesn't do anything more
   }
-
-  draw()
-  {
-    tint(0, 255, 0) // Tint green
-    super.draw()
-    noTint() // Disable tint
-  }
 }
 HardPlane.velocity = 4
 HardPlane.interShootTime = 5
+HardPlane.points = 100;
+HardPlane.lives= 5;
 HardPlane.prob = 30
+
+class KamikazePlane extends EnemyPlane 
+{
+  constructor(x, y)
+  {
+    super(x, y, KamikazePlane.interShootTime, KamikazePlane.velocity)
+  }
+
+  update()
+  {
+    super.update()
+  }
+
+  move()
+  {
+    super.move()
+    // this plane doesn't do anything more
+  }
+}
+KamikazePlane.velocity = 10
+KamikazePlane.interShootTime = 5000
+KamikazePlane.points = 50;
+KamikazePlane.lives= 1;
+KamikazePlane.prob = 20
+
 
 class Bullet extends Entity
 {
@@ -521,10 +553,17 @@ class World
     }
     else
     {
-      //basic plane
-      this.enemies.add(new BasicPlane(randomX, 0)) //this could be random
+      if(randomValue - HardPlane.prob < KamikazePlane.prob)
+      {
+        //kamikaze
+        this.enemies.add(new KamikazePlane(randomX, 0)) //this could be random
+      }
+      else
+      {
+        //basic plane
+        this.enemies.add(new BasicPlane(randomX, 0)) //this could be random
+      }
     }
-    //if we want another types of planes, add more logic here
   }
   
   managePowerUps()
