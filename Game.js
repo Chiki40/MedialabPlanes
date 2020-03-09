@@ -207,7 +207,7 @@ class EnemyPlane extends Plane
 
 class PlayerPlane extends Plane
 {
-  constructor(id, x, y, interShootTime)
+  constructor(id, x, y, interShootTime = PlayerPlane.interShootTime)
   {
     super(x, y, interShootTime, 0)
     this.isEnemy = false
@@ -221,9 +221,18 @@ class PlayerPlane extends Plane
     this.tripleFireRemainingDuration = 0.0
   }
 
-  assignBlob(f)
+  assignBlob()
   {
-    const blob = worldInstance.blobs.find(f)
+    // Let's see if a blob with my id exists
+    let blob = undefined
+    for (let i = 0; i < worldInstance.blobs.length; ++i)
+    {
+      if (this.IsMyBlob(worldInstance.blobs[i]))
+      {
+        blob = worldInstance.blobs[i]
+        break
+      }
+    }
 
     if (blob !== undefined)
     {
@@ -276,7 +285,7 @@ class PlayerPlane extends Plane
   {
     super.update()
     // Player movement via camera tracking
-    this.assignBlob(b => this.IsMyBlob(b))
+    this.assignBlob()
     
     // RapidFire PowerUp
     if (this.rapidFireRemainingDuration > 0.0)
@@ -301,6 +310,7 @@ class PlayerPlane extends Plane
   }
 }
 PlayerPlane.trackingDistance = 10
+PlayerPlane.interShootTime = 10
 PlayerPlane.lives = 10;
 
 
@@ -578,7 +588,7 @@ class World
     {
       if (!blob.assigned)
       {
-        this.addPlayerPlane(new PlayerPlane(blob.id, blob.x, blob.y, 10.0))
+        this.addPlayerPlane(new PlayerPlane(blob.id, blob.x, blob.y))
       }
     }
 
