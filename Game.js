@@ -89,18 +89,18 @@ class AnimatedEntity extends Entity
     }
   }
 
-  draw(x = this.x, y = this.y)
+  draw()
   {
     // This is a p5js function to draw sprites
-    image(this.image, x, y)
+    image(this.image, this.x, this.y)
   }
 }
 
 class Text extends Entity
 {
-  constructor(cadena, y)
+  constructor(cadena, x, y, w = World.width, h = Text.size * 4)
   {
-    super(0, y, World.width, Text.size * 4)
+    super(x, y, w, h)
     this.cadena = cadena
   }
 
@@ -137,6 +137,8 @@ class Plane extends AnimatedEntity
 
   update()
   {
+    super.update()
+    
     this.currentInterShootTime += delta()
     if (this.currentInterShootTime >= this.interShootTime)
     {
@@ -219,18 +221,34 @@ class PlayerPlane extends Plane
     
     // For TripleFire PowerUp
     this.tripleFireRemainingDuration = 0.0
+    
+    // For disconnection
+    this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
+    this.offlineState = false
+    
+    print("Player " + id + " has joined!")
   }
 
-  assignBlob()
+  updateBlob(blobs)
   {
-    // Let's see if a blob with my id exists
+    // Let's see which free blob is closer to my position
     let blob = undefined
-    for (let i = 0; i < worldInstance.blobs.length; ++i)
+    let closestDistance = 99999
+    for (let i = 0; i < blobs.length; ++i)
     {
-      if (this.IsMyBlob(worldInstance.blobs[i]))
+      // Blob isn't free, skip it
+      if (blobs[i].selectedByPlayer)
       {
-        blob = worldInstance.blobs[i]
-        break
+        continue
+      }
+      
+      let xDist = blobs[i].x - this.x
+      let yDist = blobs[i].y - this.y
+      let distance = Math.sqrt(xDist * xDist + yDist * yDist)
+      if (distance < closestDistance)
+      {
+        blob = blobs[i]
+        closestDistance = distance
       }
     }
 
@@ -238,24 +256,28 @@ class PlayerPlane extends Plane
     {
       const x = blob.x - this.x
       const y = blob.y - this.y
-      if (!(x === 0 && y === 0))
+      if (x !== 0 || y !== 0)
       {
         this.x = blob.x
         this.y = blob.y
-        this.dir = atan2(y, x)
       }
-      blob.assigned = true
+      // Player is online. Update disconnection time while player exists
+      this.offlineState = false
+      this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
+      blob.selectedByPlayer = true
     }
     else
     {
-      // Delete existing player
-      worldInstance.deletePlayerPlane(this)
+      print("Player " + this.id + " not detected")
+      // Player is offline, countdown for disconnection
+      this.offlineState = true
+      this.timeRemainingForDisconnection -= delta()
+      if (this.timeRemainingForDisconnection <= 0.0)
+      {
+        print("Player " + this.id + " left")
+        worldInstance.deletePlayerPlane(this)
+      }
     }
-  }
-  
-  IsMyBlob(blob)
-  {
-    return blob.id === this.id
   }
   
   AddRapidFireBuff(interShootTimeMultiplier, duration)
@@ -271,6 +293,12 @@ class PlayerPlane extends Plane
   
   shoot()
   {
+    // Offline players can't shoot
+    if (this.offlineState)
+    {
+      return
+    }
+    
     super.shoot()
     if (this.tripleFireRemainingDuration > 0)
     {
@@ -281,11 +309,13 @@ class PlayerPlane extends Plane
     }
   }
 
-  update()
+  update(blobs)
   {
-    super.update()
     // Player movement via camera tracking
-    this.assignBlob()
+    this.updateBlob(blobs)
+    
+    // Shooting
+    super.update()
     
     // RapidFire PowerUp
     if (this.rapidFireRemainingDuration > 0.0)
@@ -312,6 +342,7 @@ class PlayerPlane extends Plane
 PlayerPlane.trackingDistance = 10
 PlayerPlane.interShootTime = 10
 PlayerPlane.lives = 10;
+PlayerPlane.DisconnectionTime = 20.0
 
 
 class BasicPlane extends EnemyPlane 
@@ -540,33 +571,46 @@ class World
 {
   constructor()
   {
-    this.playerPlanes = new Set()
-    this.bullets = new Set()
-    this.powerUps = new Set()
-    this.texts = new Set() // <= RELAMENTE NECESITAMOS MUCHOS TEXTOS???
-    this.enemies = new Set()
+    this.playerPlanes = new Array()
+    this.bullets = new Array()
+    this.powerUps = new Array()
+    this.enemies = new Array()
     this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
     
-    this.scoreText = new Text("TEXTO DE PRUEBA", -10)
-    this.livesText = new Text("TEXTO DE PRUEBA", 10)
+    this.scoreText = new Text("TEXTO DE PRUEBA", 0, -10)
+    this.livesText = new Text("TEXTO DE PRUEBA", 0, 10)
+    this.playerTexts = new Array()
   }
 
   update(blobs)
   {
-    this.blobs = blobs
+    for (let i = 0; i < blobs.length; ++i)
+    {
+      // This blob has not been assigned to any player this frame
+      blobs[i].selectedByPlayer = false
+      
+      // Up to two players 
+      if (i < 2)
+      {
+        if (this.playerPlanes.length <= i)
+        {
+          this.addPlayerPlane(new PlayerPlane(i, blobs[i].x, blobs[i].y))
+        }
+      }
+    }
 
     this.manageEnemies()
     this.managePowerUps()
     
-    for (const enemy of this.enemies.values())
-    {
-      enemy.update()
-    }
-
     // Players
     for (const playerPlane of this.playerPlanes.values())
     {
-      playerPlane.update()
+      playerPlane.update(blobs)
+    }
+    
+    for (const enemy of this.enemies.values())
+    {
+      enemy.update()
     }
     
     // Bullets
@@ -582,17 +626,7 @@ class World
     }
 
     this.checkCollisions()
-    
-    // New player  
-    for (const blob of blobs)
-    {
-      if (!blob.assigned)
-      {
-        this.addPlayerPlane(new PlayerPlane(blob.id, blob.x, blob.y))
-      }
-    }
-
-    this.updateTexts();
+    this.updateTexts()
   }
 
   checkCollisions()
@@ -625,6 +659,12 @@ class World
         for (let j = this.playerPlanes.length - 1; j >= 0; --j)
         {
           let player = this.playerPlanes[j]
+          // Offline players can't be killed
+          if (player.offlineState)
+          {
+            continue
+          }
+          
           if (collision(bullet.x, bullet.y, bullet.width, bullet.height, player.x, player.y, player.width, player.height))
           {
             player.lives--
@@ -645,6 +685,12 @@ class World
       for (let j = this.playerPlanes.length - 1; j >= 0; --j)
       {
         let player = this.playerPlanes[j]
+         // Offline players can't get PowerUps
+        if (player.offlineState)
+        {
+          continue
+        }
+          
         if(collision(powerUp.x, powerUp.y, powerUp.width, powerUp.height, player.x, player.y, player.width, player.height))
         {
           powerUp.applyEffect(player)
@@ -657,7 +703,7 @@ class World
 
   manageEnemies()
   {
-    if(this.enemies.size < 2)
+    if(this.enemies.length < 2)
     {
       let numberToGenerate = random(2, 4) //allways will be from 4 to 6 enemies
       for(let i = 0; i < numberToGenerate; ++i)
@@ -674,26 +720,26 @@ class World
     if(randomValue < HardPlane.prob)
     {
       //hard plane
-      this.enemies.add(new HardPlane(randomX, 0)) //this could be random
+      this.enemies.push(new HardPlane(randomX, 0)) //this could be random
     }
     else
     {
       if(randomValue - HardPlane.prob < KamikazePlane.prob)
       {
         //kamikaze
-        this.enemies.add(new KamikazePlane(randomX, 0)) //this could be random
+        this.enemies.push(new KamikazePlane(randomX, 0)) //this could be random
       }
       else
       {
         //basic plane
-        this.enemies.add(new BasicPlane(randomX, 0)) //this could be random
+        this.enemies.push(new BasicPlane(randomX, 0)) //this could be random
       }
     }
   }
   
   managePowerUps()
   {
-    if(this.powerUps.size == 0)
+    if(this.powerUps.length == 0)
     {
       this.timeForNextPowerUp -= delta()
       if (this.timeForNextPowerUp <= 0)
@@ -724,7 +770,7 @@ class World
     {
       newPowerUp = new TripleFirePowerUp(randomX, randomY)
     }
-    this.powerUps.add(newPowerUp)
+    this.powerUps.push(newPowerUp)
   }
 
   updateTexts()
@@ -733,15 +779,15 @@ class World
     this.scoreText.setCadena(textScore); 
 
     let livesScore = "";
-    let actualPlayer = 1;
-
-    for (const playerPlane of this.playerPlanes.values())
+    for (let i = 0; i < this.playerPlanes.length; ++i)
     {
-      livesScore += "P" + actualPlayer + ": " + playerPlane.lives + "\t";
-      ++actualPlayer;
+      let currText = this.playerTexts[i]
+      let currPlayerPlane = this.playerPlanes[i]
+      currText.x = currPlayerPlane.x
+      currText.y = currPlayerPlane.y
+      currText.setCadena("P" + currPlayerPlane.id)
+      livesScore += "P" + currPlayerPlane.id + ": " + currPlayerPlane.lives + "\t";
     }
-
-   
     this.livesText.setCadena(livesScore); 
   }
 
@@ -773,49 +819,74 @@ class World
     {
       powerUp.draw()
     }
-    
-    // Texts
-    for (const text of this.texts.values())
-    {
-      text.draw()
-    }
 
-    this.scoreText.draw();
-    this.livesText.draw();
+    // Texts
+    this.scoreText.draw()
+    this.livesText.draw()
+    for (const playerText of this.playerTexts.values())
+    {
+      playerText.draw()
+    }
   }
   
-  addText(text)
-  {
-    this.texts.add(text)
-  }
   addPlayerPlane(playerPlane)
   {
-    this.playerPlanes.add(playerPlane)
+    this.playerPlanes.push(playerPlane)
+    this.playerTexts.push(new Text("P" + playerPlane.id, playerPlane.x, playerPlane.y, 20))
   }
   addBullet(bullet)
   {
-    this.bullets.add(bullet)
+    this.bullets.push(bullet)
   }
   addPowerUp(powerUp)
   {
-    this.powerUps.add(powerUp)
+    this.powerUps.push(powerUp)
   }
   
   deletePlayerPlane(playerPlane)
   {
-    this.playerPlanes.delete(playerPlane)
+    for (let i = 0; i < this.playerPlanes.length; ++i)
+    {
+      if (this.playerPlanes[i] == playerPlane)
+      {
+        this.playerPlanes.splice(i, 1)
+        this.playerTexts.splice(i, 1)
+        break
+      }
+    }
   }
   deleteBullet(bullet)
   {
-    this.bullets.delete(bullet)
+    for (let i = 0; i < this.bullets.length; ++i)
+    {
+      if (this.bullets[i] == bullet)
+      {
+        this.bullets.splice(i, 1)
+        break
+      }
+    }
   }
   deletePowerUp(powerUp)
   {
-    this.powerUps.delete(powerUp)
+    for (let i = 0; i < this.powerUps.length; ++i)
+    {
+      if (this.powerUps[i] == powerUp)
+      {
+        this.powerUps.splice(i, 1)
+        break
+      }
+    }
   }
   deleteEnemyPlane(plane)
   {
-    this.enemies.delete(plane)
+    for (let i = 0; i < this.enemies.length; ++i)
+    {
+      if (this.enemies[i] == plane)
+      {
+        this.enemies.splice(i, 1)
+        break
+      }
+    }
   }
 }
 World.width = 192
@@ -870,6 +941,5 @@ function draw()
   worldInstance.update(
     api.tracking.getBlobs()
   )
-  //worldInstance.addText(new Text("asdf", 10))
   worldInstance.draw()
 }
