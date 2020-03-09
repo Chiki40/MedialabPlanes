@@ -98,22 +98,22 @@ class AnimatedEntity extends Entity
 
 class Text extends Entity
 {
-  constructor(cadena, x, y, w = World.width, h = Text.size * 4)
+  constructor(txt, x, y, w = World.width, h = Text.size * 4)
   {
     super(x, y, w, h)
-    this.cadena = cadena
+    this.txt = txt
   }
 
   draw()
   {
     fill('white')
     stroke('black')
-    text(this.cadena, this.x, this.y, this.w, this.h)
+    text(this.txt, this.x, this.y, this.w, this.h)
   }
 
-  setCadena(cadena)
+  setText(txt)
   {
-    this.cadena = cadena;
+    this.txt = txt;
   }
 
 }
@@ -176,8 +176,8 @@ class EnemyPlane extends Plane
   
   update()
   {
-    super.update()
     this.move()
+    super.update()
   }
   
   draw()
@@ -280,13 +280,13 @@ class PlayerPlane extends Plane
     }
   }
   
-  AddRapidFireBuff(interShootTimeMultiplier, duration)
+  addRapidFireBuff(interShootTimeMultiplier, duration)
   {
     this.rapidFireRemainingDuration = duration
     this.interShootTime *= interShootTimeMultiplier
   }
   
-  AddTripleFireBuff(duration)
+  addTripleFireBuff(duration)
   {
     this.tripleFireRemainingDuration = duration
   }
@@ -402,7 +402,7 @@ class HardPlane extends EnemyPlane
 HardPlane.velocity = 4
 HardPlane.interShootTime = 5
 HardPlane.points = 100;
-HardPlane.lives= 5;
+HardPlane.lives = 5;
 HardPlane.prob = 30
 
 class KamikazePlane extends EnemyPlane 
@@ -426,7 +426,7 @@ class KamikazePlane extends EnemyPlane
 KamikazePlane.velocity = 10
 KamikazePlane.interShootTime = 5000
 KamikazePlane.points = 50;
-KamikazePlane.lives= 1;
+KamikazePlane.lives = 1;
 KamikazePlane.prob = 20
 
 
@@ -544,7 +544,7 @@ class RapidFirePowerUp extends PowerUp
   applyEffect(playerPlane)
   {
     super.applyEffect(playerPlane)
-    playerPlane.AddRapidFireBuff(RapidFirePowerUp.InterShootTimeMultiplier, RapidFirePowerUp.Duration)
+    playerPlane.addRapidFireBuff(RapidFirePowerUp.InterShootTimeMultiplier, RapidFirePowerUp.Duration)
   }
 }
 RapidFirePowerUp.InterShootTimeMultiplier = 0.3
@@ -561,7 +561,7 @@ class TripleFirePowerUp extends PowerUp
   applyEffect(playerPlane)
   {
     super.applyEffect(playerPlane)
-    playerPlane.AddTripleFireBuff(TripleFirePowerUp.Duration)
+    playerPlane.addTripleFireBuff(TripleFirePowerUp.Duration)
   }
 }
 TripleFirePowerUp.Duration = 10.0
@@ -577,8 +577,8 @@ class World
     this.enemies = new Array()
     this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
     
-    this.scoreText = new Text("TEXTO DE PRUEBA", 0, -10)
-    this.livesText = new Text("TEXTO DE PRUEBA", 0, 10)
+    this.scoreText = new Text("", 0, -10)
+    this.livesText = new Text("", 0, 10)
     this.playerTexts = new Array()
   }
 
@@ -642,7 +642,7 @@ class World
           if (collision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, enemy.width, enemy.height))
           {
             // Collision
-            enemy.lives--
+            --enemy.lives
             if (enemy.lives <= 0)
             {
               CurrentScore += enemy.points
@@ -667,7 +667,7 @@ class World
           
           if (collision(bullet.x, bullet.y, bullet.width, bullet.height, player.x, player.y, player.width, player.height))
           {
-            player.lives--
+            --player.lives
             if (player.lives <= 0)
             {
               print("hemos muerto")
@@ -776,7 +776,7 @@ class World
   updateTexts()
   {
     let textScore = "Points: " + CurrentScore;
-    this.scoreText.setCadena(textScore); 
+    this.scoreText.setText(textScore); 
 
     let livesScore = "";
     for (let i = 0; i < this.playerPlanes.length; ++i)
@@ -785,10 +785,9 @@ class World
       let currPlayerPlane = this.playerPlanes[i]
       currText.x = currPlayerPlane.x
       currText.y = currPlayerPlane.y
-      currText.setCadena("P" + currPlayerPlane.id)
       livesScore += "P" + currPlayerPlane.id + ": " + currPlayerPlane.lives + "\t";
     }
-    this.livesText.setCadena(livesScore); 
+    this.livesText.setText(livesScore); 
   }
 
   draw()
