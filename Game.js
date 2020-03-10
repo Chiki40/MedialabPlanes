@@ -566,6 +566,45 @@ class TripleFirePowerUp extends PowerUp
 }
 TripleFirePowerUp.Duration = 10.0
 
+class BackgroundManager extends Entity
+{
+  constructor(velocidad, imagenes)
+  {
+    super(0,0,0,0);
+
+    this._velocidad = velocidad;
+    this._imagenes = imagenes;
+    this._posiciones = new Array()
+
+    for(let i = 0;  i < this._imagenes.length; ++i)
+    {
+      this._posiciones.push( -i * World.height)
+    }
+  }
+
+  draw()
+  {
+    for(let i = 0; i < this._imagenes.length; ++i)
+    {
+      print("draw bkg" + i + "y la posicion es " + this._posiciones[i])
+      image(this._imagenes[i], 0, this._posiciones[i])
+    }
+  }
+
+  update()
+  { 
+    let increment = delta() * this._velocidad;
+    for(let i = 0; i < this._posiciones.length; ++i)
+    {
+      this._posiciones[i] += increment;
+      if(this._posiciones[i] >= World.height)
+      {
+        this._posiciones[i] -= World.height * this._posiciones.length;
+      }
+    }
+  }
+}
+
 CurrentScore = 0
 class World
 {
@@ -580,6 +619,8 @@ class World
     this.scoreText = new Text("", 0, -10)
     this.livesText = new Text("", 0, 10)
     this.playerTexts = new Array()
+
+    this.backgroudMgr = new BackgroundManager(10, new Array(images.background,images.background));
   }
 
   update(blobs)
@@ -601,6 +642,7 @@ class World
 
     this.manageEnemies()
     this.managePowerUps()
+    this.backgroudMgr.update();
     
     // Players
     for (const playerPlane of this.playerPlanes.values())
@@ -793,7 +835,7 @@ class World
   draw()
   {
     // Background
-    image(images.background, 0, 0)
+    this.backgroudMgr.draw();
     
     // Bullets
     for (const enemy of this.enemies.values())
