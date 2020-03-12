@@ -222,6 +222,9 @@ class PlayerPlane extends Plane
     // For TripleFire PowerUp
     this.tripleFireRemainingDuration = 0.0
     
+    // For blob tracking
+    this.blob = undefined
+    
     // For disconnection
     this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
     this.offlineState = false
@@ -229,42 +232,21 @@ class PlayerPlane extends Plane
     print("Player " + id + " has joined!")
   }
 
-  updateBlob(blobs)
+  updateBlob()
   {
-    // Let's see which free blob is closer to my position
-    let blob = undefined
-    let closestDistance = 99999
-    for (let i = 0; i < blobs.length; ++i)
+    // World assigns a blob to us in manageBlobs function, before calling PlayerPlane Update
+    if (this.blob !== undefined)
     {
-      // Blob isn't free, skip it
-      if (blobs[i].selectedByPlayer)
-      {
-        continue
-      }
-      
-      let xDist = blobs[i].x - this.x
-      let yDist = blobs[i].y - this.y
-      let distance = Math.sqrt(xDist * xDist + yDist * yDist)
-      if (distance < closestDistance)
-      {
-        blob = blobs[i]
-        closestDistance = distance
-      }
-    }
-
-    if (blob !== undefined)
-    {
-      const x = blob.x - this.x
-      const y = blob.y - this.y
+      const x = this.blob.x - this.x
+      const y = this.blob.y - this.y
       if (x !== 0 || y !== 0)
       {
-        this.x = blob.x
-        this.y = blob.y
+        this.x = this.blob.x
+        this.y = this.blob.y
       }
       // Player is online. Update disconnection time while player exists
       this.offlineState = false
       this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
-      blob.selectedByPlayer = true
     }
     else
     {
@@ -278,6 +260,8 @@ class PlayerPlane extends Plane
         worldInstance.deletePlayerPlane(this)
       }
     }
+    // Clear it so a new blob could be assigned on the next frame
+    this.blob = undefined
   }
   
   addRapidFireBuff(interShootTimeMultiplier, duration)
@@ -309,10 +293,10 @@ class PlayerPlane extends Plane
     }
   }
 
-  update(blobs)
+  update()
   {
     // Player movement via camera tracking
-    this.updateBlob(blobs)
+    this.updateBlob()
     
     // Shooting
     super.update()
@@ -586,7 +570,6 @@ class BackgroundManager extends Entity
   {
     for(let i = 0; i < this._imagenes.length; ++i)
     {
-      print("draw bkg" + i + "y la posicion es " + this._posiciones[i])
       image(this._imagenes[i], 0, this._posiciones[i])
     }
   }
@@ -625,21 +608,7 @@ class World
 
   update(blobs)
   {
-    for (let i = 0; i < blobs.length; ++i)
-    {
-      // This blob has not been assigned to any player this frame
-      blobs[i].selectedByPlayer = false
-      
-      // Up to two players 
-      if (i < 2)
-      {
-        if (this.playerPlanes.length <= i)
-        {
-          this.addPlayerPlane(new PlayerPlane(i, blobs[i].x, blobs[i].y))
-        }
-      }
-    }
-
+    this.manageBlobs(blobs)
     this.manageEnemies()
     this.managePowerUps()
     this.backgroudMgr.update();
@@ -647,9 +616,10 @@ class World
     // Players
     for (const playerPlane of this.playerPlanes.values())
     {
-      playerPlane.update(blobs)
+      playerPlane.update()
     }
     
+    // Enemies
     for (const enemy of this.enemies.values())
     {
       enemy.update()
@@ -669,6 +639,49 @@ class World
 
     this.checkCollisions()
     this.updateTexts()
+  }
+
+  manageBlobs(blobs)
+  {
+    for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i)
+    {
+      // Create each player the first time we have a blob for him
+      if (this.playerPlanes.length <= i)
+      {
+        this.addPlayerPlane(new PlayerPlane(i, blobs[i].x, blobs[i].y))
+      }
+    }
+
+    for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i)
+    {
+      let blob = blobs[i]
+      // Let's see which player is closer to this blob position
+      let closestPlayer = undefined
+      let closestDistance = 99999
+      for (let j = 0; j < this.playerPlanes.length; ++j)
+      {
+        let player = this.playerPlanes[j]
+        // A blob has been already assigned to this player, skip
+        if (player.blob !== undefined)
+        {
+          continue
+        }
+        
+        let xDist = blob.x - player.x
+        let yDist = blob.y - player.y
+        let distance = Math.sqrt(xDist * xDist + yDist * yDist)
+        if (distance < closestDistance)
+        {
+          closestPlayer = player
+          closestDistance = distance
+        }
+      }
+      // Assign this blob to its closest player
+      if (closestPlayer !== undefined)
+      {
+        closestPlayer.blob = blob
+      }
+    }
   }
 
   checkCollisions()
@@ -932,6 +945,7 @@ class World
 }
 World.width = 192
 World.height = 157
+World.MaxPlayers = 2
 
 function setup()
 {
