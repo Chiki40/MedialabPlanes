@@ -753,7 +753,7 @@ class World
         for (let j = this.enemies.length - 1; j >= 0; --j)
         {
           let enemy = this.enemies[j]
-          if (collision(bullet.x, bullet.y, bullet.width, bullet.height, enemy.x, enemy.y, enemy.width, enemy.height))
+          if (collision(bullet.x, bullet.y, bullet.w, bullet.h, enemy.x, enemy.y, enemy.w, enemy.h))
           {
             // Collision
             --enemy.lives
@@ -779,7 +779,7 @@ class World
             continue
           }
           
-          if (collision(bullet.x, bullet.y, bullet.width, bullet.height, player.x, player.y, player.width, player.height))
+          if (collision(bullet.x, bullet.y, bullet.w, bullet.h, player.x, player.y, player.w, player.h))
           {
             --player.lives
             if (player.lives <= 0)
@@ -805,7 +805,7 @@ class World
           continue
         }
           
-        if(collision(powerUp.x, powerUp.y, powerUp.width, powerUp.height, player.x, player.y, player.width, player.height))
+        if(collision(powerUp.x, powerUp.y, powerUp.w, powerUp.h, player.x, player.y, player.w, player.h))
         {
           powerUp.applyEffect(player)
           this.deletePowerUp(powerUp)
