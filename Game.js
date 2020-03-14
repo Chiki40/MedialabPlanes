@@ -247,6 +247,8 @@ class PlayerPlane extends Plane
       // Player is online. Update disconnection time while player exists
       this.offlineState = false
       this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
+      // Clear it so a new blob could be assigned on the next frame
+      this.blob = undefined
     }
     else
     {
@@ -260,8 +262,6 @@ class PlayerPlane extends Plane
         worldInstance.deletePlayerPlane(this)
       }
     }
-    // Clear it so a new blob could be assigned on the next frame
-    this.blob = undefined
   }
   
   addRapidFireBuff(interShootTimeMultiplier, duration)
@@ -643,26 +643,85 @@ class World
 
   manageBlobs(blobs)
   {
+    // Create each player the first time we have a blob for him
     for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i)
     {
-      // Create each player the first time we have a blob for him
       if (this.playerPlanes.length <= i)
       {
         this.addPlayerPlane(new PlayerPlane(i, blobs[i].x, blobs[i].y))
       }
     }
-
-    for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i)
+    
+    // First, each blob votes for its closest player
+    for (let i = 0; i < blobs.length; ++i)
     {
       let blob = blobs[i]
+      blob.player = undefined
       // Let's see which player is closer to this blob position
-      let closestPlayer = undefined
-      let closestDistance = 99999
+      blob.closestPlayer = undefined
+      blob.closestDistance = 99999
       for (let j = 0; j < this.playerPlanes.length; ++j)
       {
         let player = this.playerPlanes[j]
-        // A blob has been already assigned to this player, skip
-        if (player.blob !== undefined)
+        let xDist = blob.x - player.x
+        let yDist = blob.y - player.y
+        let distance = Math.sqrt(xDist * xDist + yDist * yDist)
+        if (distance < blob.closestDistance)
+        {
+          blob.closestPlayer = player
+          blob.closestDistance = distance
+        }
+      }
+    }
+    
+    // Then, each player chooses the closest blob between the ones which voted for him
+    for (let i = 0; i < this.playerPlanes.length; ++i)
+    {
+      let player = this.playerPlanes[i]
+      // Let's see which blob is closer to this player position
+      let closestBlobWhichVotedMe = undefined
+      let closestBlobWhichVotedMeDistance = 99999
+      for (let j = 0; j < blobs.length; ++j)
+      {
+        let blob = blobs[j]
+        // Skip if this blob didn't vote for me
+        if (blob.closestPlayer !== player)
+        {
+          continue
+        }
+        // Use the distance which the blob calculated early so we don't have to calculate it again
+        if (blob.closestDistance < closestBlobWhichVotedMeDistance)
+        {
+          closestBlobWhichVotedMe = blob
+          closestBlobWhichVotedMeDistance = blob.closestDistance
+        }
+      }
+      // Found closest blob which voted for me, actually assign it to me
+      if (closestBlobWhichVotedMe !== undefined)
+      {
+        player.blob = closestBlobWhichVotedMe
+        // Tag it as assigned for next step
+        closestBlobWhichVotedMe.player = player
+      }
+    }
+    
+    // Finally, each player who was not voted chooses the closest not-choosen blob
+    for (let i = 0; i < this.playerPlanes.length; ++i)
+    {
+      let player = this.playerPlanes[i]
+      // Skip if this player has already assigned a blob
+      if (player.blob !== undefined)
+      {
+        continue
+      }
+      // Let's see which non-assigned blob is closer to this player position
+      let closestBlob = undefined
+      let closestBlobDistance = 99999
+      for (let j = 0; j < blobs.length; ++j)
+      {
+        let blob = blobs[j]
+        // Skip if this blob was assigned to a player
+        if (blob.player !== undefined)
         {
           continue
         }
@@ -670,16 +729,16 @@ class World
         let xDist = blob.x - player.x
         let yDist = blob.y - player.y
         let distance = Math.sqrt(xDist * xDist + yDist * yDist)
-        if (distance < closestDistance)
+        if (distance < closestBlobDistance)
         {
-          closestPlayer = player
-          closestDistance = distance
+          closestBlob = blob
+          closestBlobDistance = distance
         }
       }
-      // Assign this blob to its closest player
-      if (closestPlayer !== undefined)
+      if (closestBlob !== undefined)
       {
-        closestPlayer.blob = blob
+        player.blob = closestBlob
+        closestBlob.player = player
       }
     }
   }
