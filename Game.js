@@ -1,3 +1,4 @@
+
 function delta()
 {
   const fr = frameRate()
@@ -121,12 +122,12 @@ Text.size = undefined
 
 class Plane extends AnimatedEntity
 {
-  constructor(x, y, interShootTime, w = Plane.width, h = Plane.height)
+  constructor(x, y, interShootTime, lives, w = Plane.width, h = Plane.height)
   {
     super("plane", x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
-    this.lives = 1
+    this.lives = lives
   }
   
   shoot()
@@ -157,11 +158,12 @@ Plane.height = 18
 
 class EnemyPlane extends Plane
 {
-  constructor(x, y, interShootTime, velocity)
+  constructor(x, y, interShootTime, velocity, lives, points)
   {
-    super(x, y, interShootTime)
+    super(x, y, interShootTime, lives)
     this.isEnemy = true
     this.velocity = velocity
+    this.points = points
   }
   
   move()
@@ -211,7 +213,7 @@ class PlayerPlane extends Plane
 {
   constructor(id, x, y, interShootTime = PlayerPlane.interShootTime)
   {
-    super(x, y, interShootTime, 0)
+    super(x, y, interShootTime, PlayerPlane.lives)
     this.isEnemy = false
     this.id = id
     
@@ -229,7 +231,7 @@ class PlayerPlane extends Plane
     this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
     this.offlineState = false
     
-    print("Player " + id + " has joined!")
+    print("Player " + id + " has joined!" + " and the lives are" +  this.lives)
   }
 
   updateBlob()
@@ -333,7 +335,7 @@ class BasicPlane extends EnemyPlane
 {
   constructor(x, y)
   {
-    super(x, y, BasicPlane.interShootTime, BasicPlane.velocity)
+    super(x, y, BasicPlane.interShootTime, BasicPlane.velocity, BasicPlane.lives, BasicPlane.points)
   }
   
   update()
@@ -357,7 +359,7 @@ class HardPlane extends EnemyPlane
 {
   constructor(x, y)
   {
-    super(x, y, HardPlane.interShootTime, HardPlane.velocity)
+    super(x, y, HardPlane.interShootTime, HardPlane.velocity, HardPlane.lives, HardPlane.points)
     this.movementLeft = false;
     let randomValue = random(0, 100)
     if(randomValue < 50)
@@ -393,7 +395,7 @@ class KamikazePlane extends EnemyPlane
 {
   constructor(x, y)
   {
-    super(x, y, KamikazePlane.interShootTime, KamikazePlane.velocity)
+    super(x, y, KamikazePlane.interShootTime, KamikazePlane.velocity, KamikazePlane.lives, KamikazePlane.points)
   }
 
   update()
@@ -512,7 +514,7 @@ class ScorePowerUp extends PowerUp
   applyEffect(playerPlane)
   {
     super.applyEffect(playerPlane)
-    CurrentScore += ScorePowerUp.ScoreGiven
+    World.CurrentScore += ScorePowerUp.ScoreGiven
   }
 }
 ScorePowerUp.ScoreGiven = 50
@@ -588,7 +590,6 @@ class BackgroundManager extends Entity
   }
 }
 
-CurrentScore = 0
 class World
 {
   constructor()
@@ -760,7 +761,7 @@ class World
             --enemy.lives
             if (enemy.lives <= 0)
             {
-              CurrentScore += enemy.points
+              World.CurrentScore += enemy.points
               this.deleteEnemyPlane(enemy)
             }
             this.deleteBullet(bullet)
@@ -830,7 +831,7 @@ class World
 
        if (collision(enemy.x, enemy.y, enemy.w, enemy.h, player.x, player.y, player.w, player.h))
        {
-          CurrentScore += enemy.points
+          World.CurrentScore += enemy.points
           this.deleteEnemyPlane(enemy)
 
           --player.lives
@@ -917,7 +918,7 @@ class World
 
   updateTexts()
   {
-    let textScore = "Points: " + CurrentScore;
+    let textScore = "Points: " + World.CurrentScore;
     this.scoreText.setText(textScore); 
 
     let livesScore = "";
@@ -1033,6 +1034,7 @@ class World
 World.width = 192
 World.height = 157
 World.MaxPlayers = 2
+World.CurrentScore = 0
 
 function setup()
 {
