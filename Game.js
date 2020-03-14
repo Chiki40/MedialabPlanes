@@ -745,6 +745,7 @@ class World
 
   checkCollisions()
   {
+    //collisions between bullets and planes
     for (let i = this.bullets.length - 1; i >= 0; --i)
     {
       let bullet = this.bullets[i]
@@ -784,7 +785,7 @@ class World
             --player.lives
             if (player.lives <= 0)
             {
-              print("hemos muerto")
+             player.offlineState = true
             }
             this.deleteBullet(bullet)
             break // This bullet is destroyed, don't want it to hit anything else
@@ -792,7 +793,7 @@ class World
         }
       }
     }
-    
+    //collisions between powerups and players
     for (let i = this.powerUps.length - 1; i >= 0; --i)
     {
       let powerUp = this.powerUps[i]
@@ -811,6 +812,33 @@ class World
           this.deletePowerUp(powerUp)
           print("Picked up powerUp")
         }
+      }
+    }
+    //collisions between planes
+    for (let i = this.enemies.length - 1; i >= 0; --i)
+    {
+      let enemy = this.enemies[i]
+
+      for (let j = this.playerPlanes.length - 1; j >= 0; --j)
+      {
+        let player = this.playerPlanes[j]
+         // Offline players can't get PowerUps
+        if (player.offlineState)
+        {
+          continue
+        }
+
+       if (collision(enemy.x, enemy.y, enemy.w, enemy.h, player.x, player.y, player.w, player.h))
+       {
+          CurrentScore += enemy.points
+          this.deleteEnemyPlane(enemy)
+
+          --player.lives
+          if (player.lives <= 0)
+          {
+           player.offlineState = true
+          }
+       }
       }
     }
   }
