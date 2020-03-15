@@ -18,18 +18,18 @@ function collision(X1, Y1, W1, H1, X2, Y2, W2, H2)
   return false
 }
 
-function hitEnemy(enemy)
+function hitEnemy(enemy, playerID)
 {
   --enemy.lives
   if (enemy.lives <= 0)
   {
-    killEnemy(enemy)
+    killEnemy(enemy, playerID)
   }
 }
 
-function killEnemy(enemy)
+function killEnemy(enemy, idPlayer)
 {
-    World.CurrentScore += enemy.points
+    World.CurrentScore[idPlayer] += enemy.points
     worldInstance.deleteEnemyPlane(enemy)
 }
 
@@ -123,16 +123,18 @@ class AnimatedEntity extends Entity
 
 class Text extends Entity
 {
-  constructor(txt, x, y, w = World.width, h = Text.size * 4)
+  constructor(txt, x, y,align = CENTER, w = World.width, h = Text.size * 4)
   {
     super(x, y, w, h)
     this.txt = txt
+    this.align = align
   }
 
   draw()
   {
     fill('white')
     stroke('black')
+    textAlign(this.align);
     text(this.txt, this.x, this.y, this.w, this.h)
   }
 
@@ -141,22 +143,28 @@ class Text extends Entity
     this.txt = txt
   }
 
+  setAlign(align)
+  {
+    this.align = align
+  }
+
 }
 Text.size = undefined
 
 class Plane extends AnimatedEntity
 {
-  constructor(x, y, interShootTime, lives, animation, w = Plane.width, h = Plane.height)
+  constructor(x, y, interShootTime, lives, animation, id, w = Plane.width, h = Plane.height)
   {
     super(animation, x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
     this.lives = lives
+    this.id = id
   }
   
   shoot()
   {
-    let bullet = new Bullet(this.isEnemy, createVector(0, 1), this.x, this.y)
+    let bullet = new Bullet(this.isEnemy, createVector(0, 1), this.id, this.x, this.y)
     worldInstance.addBullet(bullet)
   }
 
@@ -184,7 +192,7 @@ class EnemyPlane extends Plane
 {
   constructor(x, y, interShootTime, velocity, lives, points, animation)
   {
-    super(x, y, interShootTime, lives, animation)
+    super(x, y, interShootTime, lives, animation, -1)
     this.isEnemy = true
     this.velocity = velocity
     this.points = points
@@ -237,9 +245,8 @@ class PlayerPlane extends Plane
 {
   constructor(id, x, y, interShootTime = PlayerPlane.interShootTime)
   {
-    super(x, y, interShootTime, PlayerPlane.lives, PlayerPlane.idleAnim)
+    super(x, y, interShootTime, PlayerPlane.lives, PlayerPlane.idleAnim, id)
     this.isEnemy = false
-    this.id = id
     
     // For RapidFire PowerUp
     this.rapidFirePreviousInterShootTime = this.interShootTime
@@ -446,10 +453,11 @@ KamikazePlane.idleAnim = "kamikazeEnemyPlane_idle"
 
 class Bullet extends Entity
 {
-  constructor(isFromEnemy, direction, x = 0, y = 0, w = Bullet.width, h = Bullet.height)
+  constructor(isFromEnemy, direction, idPlayer, x = 0, y = 0, w = Bullet.width, h = Bullet.height)
   {
     super(x, y, w, h)
     this.isFromEnemy = isFromEnemy
+    this.idPlayer = idPlayer
     this.direction = direction.normalize()
     // If bullet is from player, shooting forward means down
     if (!this.isFromEnemy)
@@ -542,7 +550,7 @@ class ScorePowerUp extends PowerUp
   applyEffect(playerPlane)
   {
     super.applyEffect(playerPlane)
-    World.CurrentScore += ScorePowerUp.ScoreGiven
+    World.CurrentScore[playerPlane.id] += ScorePowerUp.ScoreGiven
   }
 }
 ScorePowerUp.ScoreGiven = 50
@@ -628,11 +636,12 @@ class World
     this.enemies = new Array()
     this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
     
-    this.scoreText = new Text("", 0, -10)
-    this.livesText = new Text("", 0, 10)
+    this.playerUIText =[new Text("", 2, 20, LEFT),new Text("", 0, 20, RIGHT)]
     this.playerTexts = new Array()
 
     this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background,images.background))
+    World.CurrentScore.fill(0,0,World.MaxPlayers)
+
   }
 
   update(blobs)
@@ -786,7 +795,7 @@ class World
           if (collision(bullet.x, bullet.y, bullet.w, bullet.h, enemy.x, enemy.y, enemy.w, enemy.h))
           {
             // Collision
-            hitEnemy(enemy)
+            hitEnemy(enemy, bullet.idPlayer)
             this.deleteBullet(bullet)
             break // This bullet is destroyed, don't want it to hit anything else
           }
@@ -850,7 +859,7 @@ class World
 
        if (collision(enemy.x, enemy.y, enemy.w, enemy.h, player.x, player.y, player.w, player.h))
        {
-          killEnemy(enemy)
+          killEnemy(enemy, player.id)
           hitPlayer(player)
        }
       }
@@ -931,19 +940,14 @@ class World
 
   updateTexts()
   {
-    let textScore = "Points: " + World.CurrentScore
-    this.scoreText.setText(textScore)
 
-    let livesScore = ""
-    for (let i = 0; i < this.playerPlanes.length; ++i)
+    for(let i  = 0; i < this.playerPlanes.length; ++i)
     {
-      let currText = this.playerTexts[i]
-      let currPlayerPlane = this.playerPlanes[i]
-      currText.x = currPlayerPlane.x
-      currText.y = currPlayerPlane.y
-      livesScore += "P" + currPlayerPlane.id + ": " + currPlayerPlane.lives + "\t"
+      let txt = "Player: " +  (i +1) + "\n";
+      txt += "Points: " + World.CurrentScore[i] + "\n",
+      txt += "Lives: " + this.playerPlanes[i].lives
+      this.playerUIText[i].setText(txt);
     }
-    this.livesText.setText(livesScore)
   }
 
   draw()
@@ -976,8 +980,11 @@ class World
     }
 
     // Texts
-    this.scoreText.draw()
-    this.livesText.draw()
+    for(let i = 0; i < this.playerUIText.length; ++i)
+    {
+      this.playerUIText[i].draw();
+    }
+
     for (const playerText of this.playerTexts.values())
     {
       playerText.draw()
@@ -1048,7 +1055,7 @@ World.width = 192
 World.height = 157
 World.BackgroundSpeed = 10.0
 World.MaxPlayers = 2
-World.CurrentScore = 0
+World.CurrentScore = new Array(World.MaxPlayers);
 
 function setup()
 {
