@@ -1,281 +1,246 @@
-
-function delta()
-{
+function delta() {
   const fr = frameRate()
   return fr === 0 ? 1 : 1 / fr
 }
 
-function collision(X1, Y1, W1, H1, X2, Y2, W2, H2)
-{
+function collision(X1, Y1, W1, H1, X2, Y2, W2, H2) {
   if (X1 < X2 + W2 &&
     X1 + W1 > X2 &&
     Y1 < Y2 + H2 &&
-    Y1 + H1 > Y2)
-   {
-     return true
-   }
+    Y1 + H1 > Y2) {
+    return true
+  }
 
   return false
 }
 
-function hitEnemy(enemy, playerID)
-{
+function hitEnemy(enemy, playerID) {
   --enemy.lives
-  if (enemy.lives <= 0)
-  {
+  if (enemy.lives <= 0) {
     killEnemy(enemy, playerID)
   }
 }
 
-function killEnemy(enemy, idPlayer)
-{
-    World.CurrentScore[idPlayer] += enemy.points
-    worldInstance.deleteEnemyPlane(enemy)
+function killEnemy(enemy, idPlayer) {
+  World.CurrentScore[idPlayer] += enemy.points
+  worldInstance.deleteEnemyPlane(enemy)
 }
 
-function hitPlayer(player)
-{
+function hitPlayer(player) {
   --player.lives
-  if (player.lives <= 0)
-  {
+  if (player.lives <= 0) {
     player.offlineState = true
     World.BestScore[player.id] = max(World.BestScore[player.id], World.CurrentScore[player.id])
+
+    if (World.CurrentScore[player.id] > World.BestScoreEver) {
+      this.saveBestScoreEver(World.CurrentScore[player.id])
+    }
+
     World.CurrentScore[player.id] = 0
   }
 }
 
-class Entity
-{
-  constructor(x = 0, y = 0, w, h = w)
-  {
+function saveBestScoreEver(score) {
+  api.storage.set('bestScoreEver', score);
+}
+
+class Entity {
+  constructor(x = 0, y = 0, w, h = w) {
     this.x = x
     this.y = y
     this.w = w
     this.h = h
   }
 
-  draw()
-  {
-    
+  draw() {
+
   }
 
-  update()
-  { 
-    
+  update() {
+
   }
 }
 
-class AnimatedEntity extends Entity
-{
-  constructor(animation, x, y, w, h = w)
-  {
+class AnimatedEntity extends Entity {
+  constructor(animation, x, y, w, h = w) {
     super(x, y, w, h)
     this.playAnim(animation)
   }
 
-  playAnim(animation)
-  {
+  playAnim(animation) {
     this.animation = animations[animation]
     this.setFrame(0)
     this.animTime = 0
     this.finishCalled = false
   }
 
-  setFrame(frame)
-  {
+  setFrame(frame) {
     this.image = images[this.animation.frameList[frame]]
     this.frame = frame
   }
 
-  update()
-  {
+  update() {
     super.update()
 
     this.animTime += delta()
-    if (this.animTime >= this.animation.timePerFrame)
-    {
+    if (this.animTime >= this.animation.timePerFrame) {
       this.animTime = 0
       const l = this.animation.frameList.length
 
-      if (this.frame === l - 1)
-      {
-        if (this.animation.finish && !this.finishCalled)
-        {
+      if (this.frame === l - 1) {
+        if (this.animation.finish && !this.finishCalled) {
           this.animation.finish(this)
           this.finishCalled = true
         }
-        if (this.animation.loop)
-        {
+        if (this.animation.loop) {
           this.setFrame(0)
         }
-      }
-      else
-      {
+      } else {
         this.setFrame(this.frame + 1)
       }
     }
   }
 
-  draw()
-  {
+  draw() {
     // This is a p5js function to draw sprites
     image(this.image, this.x, this.y)
   }
 }
 
-class Text extends Entity
-{
-  constructor(txt, x, y,align = CENTER, w = World.width, h = Text.size * 4)
-  {
+class Text extends Entity {
+  constructor(txt, x, y, align = CENTER, w = World.width, h = Text.size * 4) {
     super(x, y, w, h)
     this.txt = txt
     this.align = align
   }
 
-  draw()
-  {
+  draw() {
     fill('white')
     stroke('black')
     textAlign(this.align);
     text(this.txt, this.x, this.y, this.w, this.h)
   }
 
-  setText(txt)
-  {
+  setText(txt) {
     this.txt = txt
   }
 
-  setAlign(align)
-  {
+  setAlign(align) {
     this.align = align
   }
 
 }
 Text.size = undefined
 
-class Plane extends AnimatedEntity
-{
-  constructor(x, y, interShootTime, lives, animation, id, w = Plane.width, h = Plane.height)
-  {
+class Plane extends AnimatedEntity {
+  constructor(x, y, interShootTime, lives, animation, id, w = Plane.width, h = Plane.height) {
     super(animation, x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
     this.lives = lives
     this.id = id
   }
-  
-  shoot()
-  {
+
+  shoot() {
     let bullet = new Bullet(this.isEnemy, createVector(0, 1), this.id, this.x, this.y)
     worldInstance.addBullet(bullet)
   }
 
-  update()
-  {
+  update() {
     super.update()
-    
+
     this.currentInterShootTime += delta()
-    if (this.currentInterShootTime >= this.interShootTime)
-    {
+    if (this.currentInterShootTime >= this.interShootTime) {
       this.shoot()
       this.currentInterShootTime = 0
     }
   }
-  
-  draw()
-  {
+
+  draw() {
     super.draw()
   }
 }
 Plane.width = 20
 Plane.height = 20
 
-class EnemyPlane extends Plane
-{
-  constructor(x, y, interShootTime, velocity, lives, points, animation)
-  {
+class EnemyPlane extends Plane {
+  constructor(x, y, interShootTime, velocity, lives, points, animation) {
     super(x, y, interShootTime, lives, animation, -1)
     this.isEnemy = true
     this.velocity = velocity
     this.points = points
   }
-  
-  move()
-  {
+
+  move() {
     this.y += delta() * this.velocity
-    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.height)
-    {
+    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.height) {
       // Delete plane out of bounds
       worldInstance.deleteEnemyPlane(this)
     }
   }
-  
-  update()
-  {
+
+  update() {
     this.move()
     super.update()
   }
-  
-  draw()
-  {
+
+  draw() {
     this.drawColorLive()
     super.draw()
     noTint() // Disable tint
   }
 
   //same colos like breakout
-  drawColorLive()
-  {
-    switch(this.lives)
-    {
+  drawColorLive() {
+    switch (this.lives) {
       default:
-      case 1: tint(255,255,255) //white
-       break
-      case 2: tint(255,255,0) //yellow
-       break
-      case 3: tint(0,255,0) //green
-       break
-      case 4: tint(255,165,0) //orange
-       break
-      case 5: tint(255,0,0) //red
-       break
+      case 1:
+        tint(255, 255, 255) //white
+        break
+      case 2:
+        tint(255, 255, 0) //yellow
+        break
+      case 3:
+        tint(0, 255, 0) //green
+        break
+      case 4:
+        tint(255, 165, 0) //orange
+        break
+      case 5:
+        tint(255, 0, 0) //red
+        break
     }
   }
 }
 
-class PlayerPlane extends Plane
-{
-  constructor(id, x, y, interShootTime = PlayerPlane.interShootTime)
-  {
+class PlayerPlane extends Plane {
+  constructor(id, x, y, interShootTime = PlayerPlane.interShootTime) {
     super(x, y, interShootTime, PlayerPlane.lives, PlayerPlane.idleAnim, id)
     this.isEnemy = false
-    
+
     // For RapidFire PowerUp
     this.rapidFirePreviousInterShootTime = this.interShootTime
     this.rapidFireRemainingDuration = 0.0
-    
+
     // For TripleFire PowerUp
     this.tripleFireRemainingDuration = 0.0
-    
+
     // For blob tracking
     this.blob = undefined
-    
+
     // For disconnection
     this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
     this.offlineState = false
-    
-    print("Player " + id + " has joined!" + " and the lives are " +  this.lives)
+
+    print("Player " + id + " has joined!" + " and the lives are " + this.lives)
   }
 
-  updateBlob()
-  {
+  updateBlob() {
     // World assigns a blob to us in manageBlobs function, before calling PlayerPlane Update
-    if (this.blob !== undefined)
-    {
+    if (this.blob !== undefined) {
       const x = this.blob.x - this.x
       const y = this.blob.y - this.y
-      if (x !== 0 || y !== 0)
-      {
+      if (x !== 0 || y !== 0) {
         this.x = this.blob.x
         this.y = this.blob.y
       }
@@ -284,43 +249,35 @@ class PlayerPlane extends Plane
       this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
       // Clear it so a new blob could be assigned on the next frame
       this.blob = undefined
-    }
-    else
-    {
+    } else {
       print("Player " + this.id + " not detected")
       // Player is offline, countdown for disconnection
       this.offlineState = true
       this.timeRemainingForDisconnection -= delta()
-      if (this.timeRemainingForDisconnection <= 0.0)
-      {
+      if (this.timeRemainingForDisconnection <= 0.0) {
         print("Player " + this.id + " left")
         worldInstance.deletePlayerPlane(this)
       }
     }
   }
-  
-  addRapidFireBuff(interShootTimeMultiplier, duration)
-  {
+
+  addRapidFireBuff(interShootTimeMultiplier, duration) {
     this.rapidFireRemainingDuration = duration
     this.interShootTime *= interShootTimeMultiplier
   }
-  
-  addTripleFireBuff(duration)
-  {
+
+  addTripleFireBuff(duration) {
     this.tripleFireRemainingDuration = duration
   }
-  
-  shoot()
-  {
+
+  shoot() {
     // Offline players can't shoot
-    if (this.offlineState)
-    {
+    if (this.offlineState) {
       return
     }
-    
+
     super.shoot()
-    if (this.tripleFireRemainingDuration > 0)
-    {
+    if (this.tripleFireRemainingDuration > 0) {
       let bulletLeft = new Bullet(this.isEnemy, createVector(-1, 1), this.x, this.y)
       worldInstance.addBullet(bulletLeft)
       let bulletRight = new Bullet(this.isEnemy, createVector(1, 1), this.x, this.y)
@@ -328,33 +285,28 @@ class PlayerPlane extends Plane
     }
   }
 
-  update()
-  {
+  update() {
     // Player movement via camera tracking
     this.updateBlob()
-    
+
     // Shooting
     super.update()
-    
+
     // RapidFire PowerUp
-    if (this.rapidFireRemainingDuration > 0.0)
-    {
+    if (this.rapidFireRemainingDuration > 0.0) {
       this.rapidFireRemainingDuration -= delta()
-      if (this.rapidFireRemainingDuration <= 0.0)
-      {
+      if (this.rapidFireRemainingDuration <= 0.0) {
         this.interShootTime = this.rapidFirePreviousInterShootTime
       }
     }
-    
+
     // TripleFire PowerUp
-    if (this.tripleFireRemainingDuration > 0.0)
-    {
+    if (this.tripleFireRemainingDuration > 0.0) {
       this.tripleFireRemainingDuration -= delta()
     }
   }
-  
-  draw()
-  {
+
+  draw() {
     super.draw()
   }
 }
@@ -365,20 +317,16 @@ PlayerPlane.idleAnim = "playerPlane_idle"
 PlayerPlane.DisconnectionTime = 20.0
 
 
-class BasicPlane extends EnemyPlane 
-{
-  constructor(x, y)
-  {
+class BasicPlane extends EnemyPlane {
+  constructor(x, y) {
     super(x, y, BasicPlane.interShootTime, BasicPlane.velocity, BasicPlane.lives, BasicPlane.points, BasicPlane.idleAnim)
   }
-  
-  update()
-  {
+
+  update() {
     super.update()
   }
 
-  move()
-  {
+  move() {
     super.move()
     // this plane doesn't do anything more
   }
@@ -390,32 +338,26 @@ BasicPlane.lives = 2
 BasicPlane.idleAnim = "basicEnemyPlane_idle"
 BasicPlane.prob = 50
 
-class HardPlane extends EnemyPlane 
-{
-  constructor(x, y)
-  {
+class HardPlane extends EnemyPlane {
+  constructor(x, y) {
     super(x, y, HardPlane.interShootTime, HardPlane.velocity, HardPlane.lives, HardPlane.points, HardPlane.idleAnim)
     this.movementLeft = false
     let randomValue = random(0, 100)
-    if(randomValue < 50)
-    {
+    if (randomValue < 50) {
       this.movementLeft = true
     }
   }
 
-  update()
-  {
+  update() {
     super.update()
   }
 
-  move()
-  {
+  move() {
     super.move()
-    
+
     //move also in the X coor
     this.x += delta() * this.velocity * this.movementLeft ? -1 : 1
-    if (this.x + (this.w / 2.0) < 0 || this.x + (this.w / 2.0) > World.width)
-    {
+    if (this.x + (this.w / 2.0) < 0 || this.x + (this.w / 2.0) > World.width) {
       this.movementLeft = !this.movementLeft
     }
   }
@@ -427,20 +369,16 @@ HardPlane.lives = 5
 HardPlane.idleAnim = "hardEnemyPlane_idle"
 HardPlane.prob = 30
 
-class KamikazePlane extends EnemyPlane 
-{
-  constructor(x, y)
-  {
+class KamikazePlane extends EnemyPlane {
+  constructor(x, y) {
     super(x, y, KamikazePlane.interShootTime, KamikazePlane.velocity, KamikazePlane.lives, KamikazePlane.points, KamikazePlane.idleAnim)
   }
 
-  update()
-  {
+  update() {
     super.update()
   }
 
-  move()
-  {
+  move() {
     super.move()
     // this plane doesn't do anything more
   }
@@ -453,49 +391,40 @@ KamikazePlane.prob = 20
 KamikazePlane.idleAnim = "kamikazeEnemyPlane_idle"
 
 
-class Bullet extends Entity
-{
-  constructor(isFromEnemy, direction, idPlayer, x = 0, y = 0, w = Bullet.width, h = Bullet.height)
-  {
+class Bullet extends Entity {
+  constructor(isFromEnemy, direction, idPlayer, x = 0, y = 0, w = Bullet.width, h = Bullet.height) {
     super(x, y, w, h)
     this.isFromEnemy = isFromEnemy
     this.idPlayer = idPlayer
     this.direction = direction.normalize()
     // If bullet is from player, shooting forward means down
-    if (!this.isFromEnemy)
-    {
+    if (!this.isFromEnemy) {
       direction.y *= -1
-    }
-    else // If bullet is from enemy, shooting laterally is inverted (no enemies shoot laterally right now)
+    } else // If bullet is from enemy, shooting laterally is inverted (no enemies shoot laterally right now)
     {
       direction.x *= -1
     }
   }
-  
-  update()
-  {
+
+  update() {
     // Move up or down depending on bullet's shooter
     let movementMagnitude = Bullet.speed * delta()
     this.x += this.direction.x * movementMagnitude
     this.y += this.direction.y * movementMagnitude
     // Check bounds
-    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width)
-    {
+    if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.width) {
       // Delete bullet out of bounds
       worldInstance.deleteBullet(this)
     }
   }
-  
-  draw()
-  {
-    if (this.isFromEnemy)
-    {
+
+  draw() {
+    if (this.isFromEnemy) {
       tint(255, 0, 0) // Tint red
     }
     // Sprite also depends on bullet's shooter as it may face up or down
     image(images.bullet, this.x, this.y)
-    if (this.isFromEnemy)
-    {
+    if (this.isFromEnemy) {
       noTint() // Disable tint
     }
   }
@@ -504,69 +433,55 @@ Bullet.speed = 25.0
 Bullet.width = 8
 Bullet.height = 8
 
-class PowerUp extends Entity
-{
-  constructor(x = 0, y = 0, w = PowerUp.width, h = PowerUp.height)
-  {
+class PowerUp extends Entity {
+  constructor(x = 0, y = 0, w = PowerUp.width, h = PowerUp.height) {
     super(x, y, w, h)
     this.image = undefined // Overriden by each type of PowerUp
     this.remainingLifeTime = PowerUp.lifeTime
   }
 
-  update()
-  {
+  update() {
     this.remainingLifeTime -= delta()
-    if (this.remainingLifeTime <= 0)
-    {
+    if (this.remainingLifeTime <= 0) {
       print("PowerUp disappears")
       // Delete PowerUp out of bounds
       worldInstance.deletePowerUp(this)
     }
   }
-  
-  draw()
-  {
-    if (this.image !== undefined)
-    {
+
+  draw() {
+    if (this.image !== undefined) {
       image(this.image, this.x, this.y)
     }
   }
-  
-  applyEffect(playerPlane)
-  {
-  }
+
+  applyEffect(playerPlane) {}
 }
 PowerUp.timeBetweenPowerUps = 10.0
 PowerUp.lifeTime = 8.0
 PowerUp.width = 8
 PowerUp.height = 8
 
-class ScorePowerUp extends PowerUp
-{
-  constructor(x = 0, y = 0)
-  {
+class ScorePowerUp extends PowerUp {
+  constructor(x = 0, y = 0) {
     super(x, y)
     this.image = images.scorePowerUp
   }
-  
-  applyEffect(playerPlane)
-  {
+
+  applyEffect(playerPlane) {
     super.applyEffect(playerPlane)
     World.CurrentScore[playerPlane.id] += ScorePowerUp.ScoreGiven
   }
 }
 ScorePowerUp.ScoreGiven = 50
 
-class RapidFirePowerUp extends PowerUp
-{
-  constructor(x = 0, y = 0)
-  {
+class RapidFirePowerUp extends PowerUp {
+  constructor(x = 0, y = 0) {
     super(x, y)
     this.image = images.rapidFirePowerUp
   }
-  
-  applyEffect(playerPlane)
-  {
+
+  applyEffect(playerPlane) {
     super.applyEffect(playerPlane)
     playerPlane.addRapidFireBuff(RapidFirePowerUp.InterShootTimeMultiplier, RapidFirePowerUp.Duration)
   }
@@ -574,107 +489,91 @@ class RapidFirePowerUp extends PowerUp
 RapidFirePowerUp.InterShootTimeMultiplier = 0.3
 RapidFirePowerUp.Duration = 10.0
 
-class TripleFirePowerUp extends PowerUp
-{
-  constructor(x = 0, y = 0)
-  {
+class TripleFirePowerUp extends PowerUp {
+  constructor(x = 0, y = 0) {
     super(x, y)
     this.image = images.tripleFirePowerUp
   }
-  
-  applyEffect(playerPlane)
-  {
+
+  applyEffect(playerPlane) {
     super.applyEffect(playerPlane)
     playerPlane.addTripleFireBuff(TripleFirePowerUp.Duration)
   }
 }
 TripleFirePowerUp.Duration = 10.0
 
-class BackgroundManager extends Entity
-{
-  constructor(speed, images)
-  {
-    super(0,0,0,0)
+class BackgroundManager extends Entity {
+  constructor(speed, images) {
+    super(0, 0, 0, 0)
 
     this.speed = speed
     this.images = images
     this.positions = new Array()
 
-    for(let i = 0;  i < this.images.length; ++i)
-    {
-      this.positions.push( -i * World.height)
+    for (let i = 0; i < this.images.length; ++i) {
+      this.positions.push(-i * World.height)
     }
   }
 
-  draw()
-  {
-    for(let i = 0; i < this.images.length; ++i)
-    {
+  draw() {
+    for (let i = 0; i < this.images.length; ++i) {
       image(this.images[i], 0, this.positions[i])
     }
   }
 
-  update()
-  { 
+  update() {
     let increment = delta() * this.speed
-    for(let i = 0; i < this.positions.length; ++i)
-    {
+    for (let i = 0; i < this.positions.length; ++i) {
       this.positions[i] += increment
-      if(this.positions[i] >= World.height)
-      {
+      if (this.positions[i] >= World.height) {
         this.positions[i] -= World.height * this.positions.length
       }
     }
   }
 }
 
-class World
-{
-  constructor()
-  {
+class World {
+  constructor() {
     this.playerPlanes = new Array()
     this.bullets = new Array()
     this.powerUps = new Array()
     this.enemies = new Array()
     this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
-    
-    this.playerUIText =[new Text("", 2, 20, LEFT),new Text("", 0, 20, RIGHT)]
+
+    this.playerUIText = [new Text("", 2, 20, LEFT), new Text("", 0, 20, RIGHT)]
     this.playerTexts = new Array()
 
-    this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background,images.background))
-    World.CurrentScore.fill(0,0,World.MaxPlayers)
-    World.BestScore.fill(0,0,World.MaxPlayers)
+    this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background, images.background))
+    World.CurrentScore.fill(0, 0, World.MaxPlayers)
+    World.BestScore.fill(0, 0, World.MaxPlayers)
+
+    this.bestScoreEverTxt = new Text("", 0, 20, CENTER)
 
   }
 
-  update(blobs)
-  {
+  update(blobs) {
     this.manageBlobs(blobs)
     this.manageEnemies()
     this.managePowerUps()
     this.backgroudMgr.update()
-    
+
     // Players
-    for (const playerPlane of this.playerPlanes.values())
-    {
+    for (const playerPlane of this.playerPlanes.values()) {
       playerPlane.update()
     }
-    
+
     // Enemies
-    for (const enemy of this.enemies.values())
-    {
+    for (const enemy of this.enemies.values()) {
       enemy.update()
     }
-    
+
     // Bullets
-    for (const bullet of this.bullets.values())
-    {
+    for (const bullet of this.bullets.values()) {
       bullet.update()
     }
-    
+
     // PowerUps
-    for (const powerUp of this.powerUps.values())
-    {
+    for (const powerUp of this.powerUps.values()) {
       powerUp.update()
     }
 
@@ -682,142 +581,115 @@ class World
     this.updateTexts()
   }
 
-  manageBlobs(blobs)
-  {
+  manageBlobs(blobs) {
     // Create each player the first time we have a blob for him
-    for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i)
-    {
-      if (this.playerPlanes.length <= i)
-      {
+    for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i) {
+      if (this.playerPlanes.length <= i) {
         this.addPlayerPlane(new PlayerPlane(i, blobs[i].x, blobs[i].y))
       }
     }
-    
+
     // First, each blob votes for its closest player
-    for (let i = 0; i < blobs.length; ++i)
-    {
+    for (let i = 0; i < blobs.length; ++i) {
       let blob = blobs[i]
       blob.player = undefined
       // Let's see which player is closer to this blob position
       blob.closestPlayer = undefined
       blob.closestDistance = 99999
-      for (let j = 0; j < this.playerPlanes.length; ++j)
-      {
+      for (let j = 0; j < this.playerPlanes.length; ++j) {
         let player = this.playerPlanes[j]
         let xDist = blob.x - player.x
         let yDist = blob.y - player.y
         let distance = Math.sqrt(xDist * xDist + yDist * yDist)
-        if (distance < blob.closestDistance)
-        {
+        if (distance < blob.closestDistance) {
           blob.closestPlayer = player
           blob.closestDistance = distance
         }
       }
     }
-    
+
     // Then, each player chooses the closest blob between the ones which voted for him
-    for (let i = 0; i < this.playerPlanes.length; ++i)
-    {
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
       let player = this.playerPlanes[i]
       // Let's see which blob is closer to this player position
       let closestBlobWhichVotedMe = undefined
       let closestBlobWhichVotedMeDistance = 99999
-      for (let j = 0; j < blobs.length; ++j)
-      {
+      for (let j = 0; j < blobs.length; ++j) {
         let blob = blobs[j]
         // Skip if this blob didn't vote for me
-        if (blob.closestPlayer !== player)
-        {
+        if (blob.closestPlayer !== player) {
           continue
         }
         // Use the distance which the blob calculated early so we don't have to calculate it again
-        if (blob.closestDistance < closestBlobWhichVotedMeDistance)
-        {
+        if (blob.closestDistance < closestBlobWhichVotedMeDistance) {
           closestBlobWhichVotedMe = blob
           closestBlobWhichVotedMeDistance = blob.closestDistance
         }
       }
       // Found closest blob which voted for me, actually assign it to me
-      if (closestBlobWhichVotedMe !== undefined)
-      {
+      if (closestBlobWhichVotedMe !== undefined) {
         player.blob = closestBlobWhichVotedMe
         // Tag it as assigned for next step
         closestBlobWhichVotedMe.player = player
       }
     }
-    
+
     // Finally, each player who was not voted chooses the closest not-choosen blob
-    for (let i = 0; i < this.playerPlanes.length; ++i)
-    {
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
       let player = this.playerPlanes[i]
       // Skip if this player has already assigned a blob
-      if (player.blob !== undefined)
-      {
+      if (player.blob !== undefined) {
         continue
       }
       // Let's see which non-assigned blob is closer to this player position
       let closestBlob = undefined
       let closestBlobDistance = 99999
-      for (let j = 0; j < blobs.length; ++j)
-      {
+      for (let j = 0; j < blobs.length; ++j) {
         let blob = blobs[j]
         // Skip if this blob was assigned to a player
-        if (blob.player !== undefined)
-        {
+        if (blob.player !== undefined) {
           continue
         }
-        
+
         let xDist = blob.x - player.x
         let yDist = blob.y - player.y
         let distance = Math.sqrt(xDist * xDist + yDist * yDist)
-        if (distance < closestBlobDistance)
-        {
+        if (distance < closestBlobDistance) {
           closestBlob = blob
           closestBlobDistance = distance
         }
       }
-      if (closestBlob !== undefined)
-      {
+      if (closestBlob !== undefined) {
         player.blob = closestBlob
         closestBlob.player = player
       }
     }
   }
 
-  checkCollisions()
-  {
+  checkCollisions() {
     //collisions between bullets and planes
-    for (let i = this.bullets.length - 1; i >= 0; --i)
-    {
+    for (let i = this.bullets.length - 1; i >= 0; --i) {
       let bullet = this.bullets[i]
-      if (!bullet.isFromEnemy)
-      {
-        for (let j = this.enemies.length - 1; j >= 0; --j)
-        {
+      if (!bullet.isFromEnemy) {
+        for (let j = this.enemies.length - 1; j >= 0; --j) {
           let enemy = this.enemies[j]
-          if (collision(bullet.x, bullet.y, bullet.w, bullet.h, enemy.x, enemy.y, enemy.w, enemy.h))
-          {
+          if (collision(bullet.x, bullet.y, bullet.w, bullet.h, enemy.x, enemy.y, enemy.w, enemy.h)) {
             // Collision
             hitEnemy(enemy, bullet.idPlayer)
             this.deleteBullet(bullet)
             break // This bullet is destroyed, don't want it to hit anything else
           }
         }
-      }
-      else
-      {
+      } else {
         //It's a enemy bullet, check collision with player
-        for (let j = this.playerPlanes.length - 1; j >= 0; --j)
-        {
+        for (let j = this.playerPlanes.length - 1; j >= 0; --j) {
           let player = this.playerPlanes[j]
           // Offline players can't be killed
-          if (player.offlineState)
-          {
+          if (player.offlineState) {
             continue
           }
-          
-          if (collision(bullet.x, bullet.y, bullet.w, bullet.h, player.x, player.y, player.w, player.h))
-          {
+
+          if (collision(bullet.x, bullet.y, bullet.w, bullet.h, player.x, player.y, player.w, player.h)) {
             hitPlayer(player)
             this.deleteBullet(bullet)
             break // This bullet is destroyed, don't want it to hit anything else
@@ -826,20 +698,16 @@ class World
       }
     }
     //collisions between powerups and players
-    for (let i = this.powerUps.length - 1; i >= 0; --i)
-    {
+    for (let i = this.powerUps.length - 1; i >= 0; --i) {
       let powerUp = this.powerUps[i]
-      for (let j = this.playerPlanes.length - 1; j >= 0; --j)
-      {
+      for (let j = this.playerPlanes.length - 1; j >= 0; --j) {
         let player = this.playerPlanes[j]
-         // Offline players can't get PowerUps
-        if (player.offlineState)
-        {
+        // Offline players can't get PowerUps
+        if (player.offlineState) {
           continue
         }
-          
-        if(collision(powerUp.x, powerUp.y, powerUp.w, powerUp.h, player.x, player.y, player.w, player.h))
-        {
+
+        if (collision(powerUp.x, powerUp.y, powerUp.w, powerUp.h, player.x, player.y, player.w, player.h)) {
           powerUp.applyEffect(player)
           this.deletePowerUp(powerUp)
           print("Picked up powerUp")
@@ -847,208 +715,165 @@ class World
       }
     }
     //collisions between planes
-    for (let i = this.enemies.length - 1; i >= 0; --i)
-    {
+    for (let i = this.enemies.length - 1; i >= 0; --i) {
       let enemy = this.enemies[i]
 
-      for (let j = this.playerPlanes.length - 1; j >= 0; --j)
-      {
+      for (let j = this.playerPlanes.length - 1; j >= 0; --j) {
         let player = this.playerPlanes[j]
-         // Offline players can't get PowerUps
-        if (player.offlineState)
-        {
+        // Offline players can't get PowerUps
+        if (player.offlineState) {
           continue
         }
 
-       if (collision(enemy.x, enemy.y, enemy.w, enemy.h, player.x, player.y, player.w, player.h))
-       {
+        if (collision(enemy.x, enemy.y, enemy.w, enemy.h, player.x, player.y, player.w, player.h)) {
           killEnemy(enemy, player.id)
           hitPlayer(player)
-       }
+        }
       }
     }
   }
 
-  manageEnemies()
-  {
-    if(this.enemies.length < 2)
-    {
+  manageEnemies() {
+    if (this.enemies.length < 2) {
       let numberToGenerate = random(2, 4) //allways will be from 4 to 6 enemies
-      for(let i = 0; i < numberToGenerate; ++i)
-      {
+      for (let i = 0; i < numberToGenerate; ++i) {
         this.generateRandomEnemy()
       }
     }
   }
-  
-  generateRandomEnemy()
-  {
+
+  generateRandomEnemy() {
     let randomValue = random(0, 100)
     let randomX = random(0, World.width)
-    if(randomValue < HardPlane.prob)
-    {
+    if (randomValue < HardPlane.prob) {
       //hard plane
       this.enemies.push(new HardPlane(randomX, 0)) //this could be random
-    }
-    else
-    {
-      if(randomValue - HardPlane.prob < KamikazePlane.prob)
-      {
+    } else {
+      if (randomValue - HardPlane.prob < KamikazePlane.prob) {
         //kamikaze
         this.enemies.push(new KamikazePlane(randomX, 0)) //this could be random
-      }
-      else
-      {
+      } else {
         //basic plane
         this.enemies.push(new BasicPlane(randomX, 0)) //this could be random
       }
     }
   }
-  
-  managePowerUps()
-  {
-    if(this.powerUps.length == 0)
-    {
+
+  managePowerUps() {
+    if (this.powerUps.length == 0) {
       this.timeForNextPowerUp -= delta()
-      if (this.timeForNextPowerUp <= 0)
-      {
+      if (this.timeForNextPowerUp <= 0) {
         this.generateRandomPowerUp()
         this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
       }
     }
   }
-  
-  generateRandomPowerUp()
-  {
+
+  generateRandomPowerUp() {
     print("PowerUp appears")
     let randomX = random(0, World.width)
     let randomY = random(World.height / 2.0, World.height)
     let randomType = floor(random(3))
     print(randomType)
     let newPowerUp = undefined
-    if (randomType == 0)
-    {
+    if (randomType == 0) {
       newPowerUp = new ScorePowerUp(randomX, randomY)
-    }
-    else if (randomType == 1)
-    {
+    } else if (randomType == 1) {
       newPowerUp = new RapidFirePowerUp(randomX, randomY)
-    }
-    else
-    {
+    } else {
       newPowerUp = new TripleFirePowerUp(randomX, randomY)
     }
     this.powerUps.push(newPowerUp)
   }
 
-  updateTexts()
-  {
+  updateTexts() {
 
-    for(let i  = 0; i < this.playerPlanes.length; ++i)
-    {
-      let txt = "Player: " +  (i +1) + "\n";
-      txt += "Lives: " + this.playerPlanes[i].lives +"\n";
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
+      let txt = "Player: " + (i + 1) + "\n";
+      txt += "Lives: " + this.playerPlanes[i].lives + "\n";
       txt += "Points: " + World.CurrentScore[i] + "\n",
-      txt += "Best Score: " + World.BestScore[i]
+        txt += "Best Score: " + World.BestScore[i]
       this.playerUIText[i].setText(txt);
     }
+
+    this.bestScoreEverTxt.setText("Best Score: " +  World.BestScoreEver)
   }
 
-  draw()
-  {
+  draw() {
     // Background
     this.backgroudMgr.draw()
-    
+
     // Bullets
-    for (const enemy of this.enemies.values())
-    {
+    for (const enemy of this.enemies.values()) {
       enemy.draw()
     }
 
     // Players
-    for (const playerPlane of this.playerPlanes.values())
-    {
+    for (const playerPlane of this.playerPlanes.values()) {
       playerPlane.draw()
     }
-    
+
     // Bullets
-    for (const bullet of this.bullets.values())
-    {
+    for (const bullet of this.bullets.values()) {
       bullet.draw()
     }
-    
+
     // PowerUps
-    for (const powerUp of this.powerUps.values())
-    {
+    for (const powerUp of this.powerUps.values()) {
       powerUp.draw()
     }
 
     // Texts
-    for(let i = 0; i < this.playerUIText.length; ++i)
-    {
+    for (let i = 0; i < this.playerUIText.length; ++i) {
       this.playerUIText[i].draw();
     }
 
-    for (const playerText of this.playerTexts.values())
-    {
+    for (const playerText of this.playerTexts.values()) {
       playerText.draw()
     }
+
+    this.bestScoreEverTxt.draw();
   }
-  
-  addPlayerPlane(playerPlane)
-  {
+
+  addPlayerPlane(playerPlane) {
     this.playerPlanes.push(playerPlane)
     this.playerTexts.push(new Text("P" + playerPlane.id, playerPlane.x, playerPlane.y, 20))
   }
-  addBullet(bullet)
-  {
+  addBullet(bullet) {
     this.bullets.push(bullet)
   }
-  addPowerUp(powerUp)
-  {
+  addPowerUp(powerUp) {
     this.powerUps.push(powerUp)
   }
-  
-  deletePlayerPlane(playerPlane)
-  {
-    for (let i = 0; i < this.playerPlanes.length; ++i)
-    {
-      if (this.playerPlanes[i] == playerPlane)
-      {
+
+  deletePlayerPlane(playerPlane) {
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
+      if (this.playerPlanes[i] == playerPlane) {
         this.playerPlanes.splice(i, 1)
         this.playerTexts.splice(i, 1)
         break
       }
     }
   }
-  deleteBullet(bullet)
-  {
-    for (let i = 0; i < this.bullets.length; ++i)
-    {
-      if (this.bullets[i] == bullet)
-      {
+  deleteBullet(bullet) {
+    for (let i = 0; i < this.bullets.length; ++i) {
+      if (this.bullets[i] == bullet) {
         this.bullets.splice(i, 1)
         break
       }
     }
   }
-  deletePowerUp(powerUp)
-  {
-    for (let i = 0; i < this.powerUps.length; ++i)
-    {
-      if (this.powerUps[i] == powerUp)
-      {
+  deletePowerUp(powerUp) {
+    for (let i = 0; i < this.powerUps.length; ++i) {
+      if (this.powerUps[i] == powerUp) {
         this.powerUps.splice(i, 1)
         break
       }
     }
   }
-  deleteEnemyPlane(plane)
-  {
-    for (let i = 0; i < this.enemies.length; ++i)
-    {
-      if (this.enemies[i] == plane)
-      {
+  deleteEnemyPlane(plane) {
+    for (let i = 0; i < this.enemies.length; ++i) {
+      if (this.enemies[i] == plane) {
         this.enemies.splice(i, 1)
         break
       }
@@ -1061,9 +886,13 @@ World.BackgroundSpeed = 10.0
 World.MaxPlayers = 2
 World.CurrentScore = new Array(World.MaxPlayers);
 World.BestScore = new Array(World.MaxPlayers);
+World.BestScoreEver = api.storage.get('bestScoreEver');
+if (World.BestScoreEver == null) {
+  World.BestScoreEver = 0;
+  saveBestScoreEver(0)
+}
 
-function setup()
-{
+function setup() {
   createCanvas(World.width, World.height)
   noSmooth()
   textAlign(CENTER, CENTER)
@@ -1072,33 +901,46 @@ function setup()
   Text.size = textAscent() + textDescent()
 
   api.tracking.connect()
-  
+
   worldInstance = new World()
 }
 
 const images = {}
 const animations = {}
 
-function range(from, to)
-{
+function range(from, to) {
   return [...Array(to).keys()].slice(from)
 }
 
-function getSpritesList(name, first, last)
-{
+function getSpritesList(name, first, last) {
   return range(first, last).map(i => `${name}_${i.toString().padStart(2, '0')}`)
 }
 
 function preload() {
   const url = '/media/usera4300b002b'
 
-  animations.playerPlane_idle = { frameList: getSpritesList("plane_idle", 0, 2), timePerFrame: 0.5, loop: true }
-  animations.basicEnemyPlane_idle = { frameList: getSpritesList("enemy1_idle", 0, 2), timePerFrame: 0.5, loop: true }
-  animations.hardEnemyPlane_idle = { frameList: getSpritesList("enemy2_idle", 0, 2), timePerFrame: 0.5, loop: true }
-  animations.kamikazeEnemyPlane_idle = { frameList: getSpritesList("enemy3_idle", 0, 2), timePerFrame: 0.5, loop: true }
+  animations.playerPlane_idle = {
+    frameList: getSpritesList("plane_idle", 0, 2),
+    timePerFrame: 0.5,
+    loop: true
+  }
+  animations.basicEnemyPlane_idle = {
+    frameList: getSpritesList("enemy1_idle", 0, 2),
+    timePerFrame: 0.5,
+    loop: true
+  }
+  animations.hardEnemyPlane_idle = {
+    frameList: getSpritesList("enemy2_idle", 0, 2),
+    timePerFrame: 0.5,
+    loop: true
+  }
+  animations.kamikazeEnemyPlane_idle = {
+    frameList: getSpritesList("enemy3_idle", 0, 2),
+    timePerFrame: 0.5,
+    loop: true
+  }
   const pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
-  for (const png of pngs)
-  {
+  for (const png of pngs) {
     images[png] = loadImage(`${url}/${png}.png`)
   }
   images.bullet = loadImage(`${url}/bullet_up.png`)
@@ -1108,8 +950,7 @@ function preload() {
   images.background = loadImage(`${url}/background.png`)
 }
 
-function draw()
-{
+function draw() {
   worldInstance.update(
     api.tracking.getBlobs()
   )
