@@ -138,7 +138,7 @@ class Text extends Entity
 
   setText(txt)
   {
-    this.txt = txt;
+    this.txt = txt
   }
 
 }
@@ -146,9 +146,9 @@ Text.size = undefined
 
 class Plane extends AnimatedEntity
 {
-  constructor(x, y, interShootTime, lives, w = Plane.width, h = Plane.height)
+  constructor(x, y, interShootTime, lives, animation, w = Plane.width, h = Plane.height)
   {
-    super("plane", x, y, w, h)
+    super(animation, x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
     this.lives = lives
@@ -177,14 +177,14 @@ class Plane extends AnimatedEntity
     super.draw()
   }
 }
-Plane.width = 18
-Plane.height = 18
+Plane.width = 20
+Plane.height = 20
 
 class EnemyPlane extends Plane
 {
-  constructor(x, y, interShootTime, velocity, lives, points)
+  constructor(x, y, interShootTime, velocity, lives, points, animation)
   {
-    super(x, y, interShootTime, lives)
+    super(x, y, interShootTime, lives, animation)
     this.isEnemy = true
     this.velocity = velocity
     this.points = points
@@ -208,7 +208,7 @@ class EnemyPlane extends Plane
   
   draw()
   {
-    this.drawColorLive();
+    this.drawColorLive()
     super.draw()
     noTint() // Disable tint
   }
@@ -219,16 +219,16 @@ class EnemyPlane extends Plane
     switch(this.lives)
     {
       default:
-      case 1: tint(255,255,255);//white
-       break;
-      case 2: tint(255,255,0);//yellow
-       break;
-      case 3: tint(0,255,0);//green
-       break;
-      case 4: tint(255,165,0);//orange
-       break;
-      case 5: tint(255,0,0);//red
-       break;
+      case 1: tint(255,255,255) //white
+       break
+      case 2: tint(255,255,0) //yellow
+       break
+      case 3: tint(0,255,0) //green
+       break
+      case 4: tint(255,165,0) //orange
+       break
+      case 5: tint(255,0,0) //red
+       break
     }
   }
 }
@@ -237,7 +237,7 @@ class PlayerPlane extends Plane
 {
   constructor(id, x, y, interShootTime = PlayerPlane.interShootTime)
   {
-    super(x, y, interShootTime, PlayerPlane.lives)
+    super(x, y, interShootTime, PlayerPlane.lives, PlayerPlane.idleAnim)
     this.isEnemy = false
     this.id = id
     
@@ -351,7 +351,8 @@ class PlayerPlane extends Plane
 }
 PlayerPlane.trackingDistance = 10
 PlayerPlane.interShootTime = 10
-PlayerPlane.lives = 10;
+PlayerPlane.lives = 10
+PlayerPlane.idleAnim = "playerPlane_idle"
 PlayerPlane.DisconnectionTime = 20.0
 
 
@@ -359,7 +360,7 @@ class BasicPlane extends EnemyPlane
 {
   constructor(x, y)
   {
-    super(x, y, BasicPlane.interShootTime, BasicPlane.velocity, BasicPlane.lives, BasicPlane.points)
+    super(x, y, BasicPlane.interShootTime, BasicPlane.velocity, BasicPlane.lives, BasicPlane.points, BasicPlane.idleAnim)
   }
   
   update()
@@ -375,20 +376,21 @@ class BasicPlane extends EnemyPlane
 }
 BasicPlane.velocity = 2
 BasicPlane.interShootTime = 10
-BasicPlane.points = 10;
-BasicPlane.lives = 2;
+BasicPlane.points = 10
+BasicPlane.lives = 2
+BasicPlane.idleAnim = "basicEnemyPlane_idle"
 BasicPlane.prob = 50
 
 class HardPlane extends EnemyPlane 
 {
   constructor(x, y)
   {
-    super(x, y, HardPlane.interShootTime, HardPlane.velocity, HardPlane.lives, HardPlane.points)
-    this.movementLeft = false;
+    super(x, y, HardPlane.interShootTime, HardPlane.velocity, HardPlane.lives, HardPlane.points, HardPlane.idleAnim)
+    this.movementLeft = false
     let randomValue = random(0, 100)
     if(randomValue < 50)
     {
-      this.movementLeft = true;
+      this.movementLeft = true
     }
   }
 
@@ -402,24 +404,25 @@ class HardPlane extends EnemyPlane
     super.move()
     
     //move also in the X coor
-    this.x += delta() * this.velocity * this.movementLeft ? -1 : 1;
+    this.x += delta() * this.velocity * this.movementLeft ? -1 : 1
     if (this.x + (this.w / 2.0) < 0 || this.x + (this.w / 2.0) > World.width)
     {
-      this.movementLeft = !this.movementLeft;
+      this.movementLeft = !this.movementLeft
     }
   }
 }
 HardPlane.velocity = 4
 HardPlane.interShootTime = 5
-HardPlane.points = 100;
-HardPlane.lives = 5;
+HardPlane.points = 100
+HardPlane.lives = 5
+HardPlane.idleAnim = "hardEnemyPlane_idle"
 HardPlane.prob = 30
 
 class KamikazePlane extends EnemyPlane 
 {
   constructor(x, y)
   {
-    super(x, y, KamikazePlane.interShootTime, KamikazePlane.velocity, KamikazePlane.lives, KamikazePlane.points)
+    super(x, y, KamikazePlane.interShootTime, KamikazePlane.velocity, KamikazePlane.lives, KamikazePlane.points, KamikazePlane.idleAnim)
   }
 
   update()
@@ -435,9 +438,10 @@ class KamikazePlane extends EnemyPlane
 }
 KamikazePlane.velocity = 10
 KamikazePlane.interShootTime = 5000
-KamikazePlane.points = 50;
-KamikazePlane.lives = 1;
+KamikazePlane.points = 50
+KamikazePlane.lives = 1
 KamikazePlane.prob = 20
+KamikazePlane.idleAnim = "kamikazeEnemyPlane_idle"
 
 
 class Bullet extends Entity
@@ -580,10 +584,10 @@ class BackgroundManager extends Entity
 {
   constructor(speed, images)
   {
-    super(0,0,0,0);
+    super(0,0,0,0)
 
-    this.speed = speed;
-    this.images = images;
+    this.speed = speed
+    this.images = images
     this.positions = new Array()
 
     for(let i = 0;  i < this.images.length; ++i)
@@ -602,13 +606,13 @@ class BackgroundManager extends Entity
 
   update()
   { 
-    let increment = delta() * this.speed;
+    let increment = delta() * this.speed
     for(let i = 0; i < this.positions.length; ++i)
     {
-      this.positions[i] += increment;
+      this.positions[i] += increment
       if(this.positions[i] >= World.height)
       {
-        this.positions[i] -= World.height * this.positions.length;
+        this.positions[i] -= World.height * this.positions.length
       }
     }
   }
@@ -628,7 +632,7 @@ class World
     this.livesText = new Text("", 0, 10)
     this.playerTexts = new Array()
 
-    this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background,images.background));
+    this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background,images.background))
   }
 
   update(blobs)
@@ -636,7 +640,7 @@ class World
     this.manageBlobs(blobs)
     this.manageEnemies()
     this.managePowerUps()
-    this.backgroudMgr.update();
+    this.backgroudMgr.update()
     
     // Players
     for (const playerPlane of this.playerPlanes.values())
@@ -927,25 +931,25 @@ class World
 
   updateTexts()
   {
-    let textScore = "Points: " + World.CurrentScore;
-    this.scoreText.setText(textScore); 
+    let textScore = "Points: " + World.CurrentScore
+    this.scoreText.setText(textScore)
 
-    let livesScore = "";
+    let livesScore = ""
     for (let i = 0; i < this.playerPlanes.length; ++i)
     {
       let currText = this.playerTexts[i]
       let currPlayerPlane = this.playerPlanes[i]
       currText.x = currPlayerPlane.x
       currText.y = currPlayerPlane.y
-      livesScore += "P" + currPlayerPlane.id + ": " + currPlayerPlane.lives + "\t";
+      livesScore += "P" + currPlayerPlane.id + ": " + currPlayerPlane.lives + "\t"
     }
-    this.livesText.setText(livesScore); 
+    this.livesText.setText(livesScore)
   }
 
   draw()
   {
     // Background
-    this.backgroudMgr.draw();
+    this.backgroudMgr.draw()
     
     // Bullets
     for (const enemy of this.enemies.values())
@@ -1076,8 +1080,10 @@ function getSpritesList(name, first, last)
 function preload() {
   const url = '/media/usera4300b002b'
 
-  animations.plane = { frameList: getSpritesList("plane_idle", 0, 2), timePerFrame: 0.5, loop: true }
-
+  animations.playerPlane_idle = { frameList: getSpritesList("plane_idle", 0, 2), timePerFrame: 0.5, loop: true }
+  animations.basicEnemyPlane_idle = { frameList: getSpritesList("enemy1_idle", 0, 2), timePerFrame: 0.5, loop: true }
+  animations.hardEnemyPlane_idle = { frameList: getSpritesList("enemy2_idle", 0, 2), timePerFrame: 0.5, loop: true }
+  animations.kamikazeEnemyPlane_idle = { frameList: getSpritesList("enemy3_idle", 0, 2), timePerFrame: 0.5, loop: true }
   const pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
   for (const png of pngs)
   {
