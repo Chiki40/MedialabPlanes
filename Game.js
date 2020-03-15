@@ -18,6 +18,30 @@ function collision(X1, Y1, W1, H1, X2, Y2, W2, H2)
   return false
 }
 
+function hitEnemy(enemy)
+{
+  --enemy.lives
+  if (enemy.lives <= 0)
+  {
+    killEnemy(enemy)
+  }
+}
+
+function killEnemy(enemy)
+{
+    World.CurrentScore += enemy.points
+    worldInstance.deleteEnemyPlane(enemy)
+}
+
+function hitPlayer(player)
+{
+  --player.lives
+  if (player.lives <= 0)
+  {
+   player.offlineState = true
+  }
+}
+
 class Entity
 {
   constructor(x = 0, y = 0, w, h = w)
@@ -231,7 +255,7 @@ class PlayerPlane extends Plane
     this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
     this.offlineState = false
     
-    print("Player " + id + " has joined!" + " and the lives are" +  this.lives)
+    print("Player " + id + " has joined!" + " and the lives are " +  this.lives)
   }
 
   updateBlob()
@@ -554,37 +578,37 @@ TripleFirePowerUp.Duration = 10.0
 
 class BackgroundManager extends Entity
 {
-  constructor(velocidad, imagenes)
+  constructor(speed, images)
   {
     super(0,0,0,0);
 
-    this._velocidad = velocidad;
-    this._imagenes = imagenes;
-    this._posiciones = new Array()
+    this.speed = speed;
+    this.images = images;
+    this.positions = new Array()
 
-    for(let i = 0;  i < this._imagenes.length; ++i)
+    for(let i = 0;  i < this.images.length; ++i)
     {
-      this._posiciones.push( -i * World.height)
+      this.positions.push( -i * World.height)
     }
   }
 
   draw()
   {
-    for(let i = 0; i < this._imagenes.length; ++i)
+    for(let i = 0; i < this.images.length; ++i)
     {
-      image(this._imagenes[i], 0, this._posiciones[i])
+      image(this.images[i], 0, this.positions[i])
     }
   }
 
   update()
   { 
-    let increment = delta() * this._velocidad;
-    for(let i = 0; i < this._posiciones.length; ++i)
+    let increment = delta() * this.speed;
+    for(let i = 0; i < this.positions.length; ++i)
     {
-      this._posiciones[i] += increment;
-      if(this._posiciones[i] >= World.height)
+      this.positions[i] += increment;
+      if(this.positions[i] >= World.height)
       {
-        this._posiciones[i] -= World.height * this._posiciones.length;
+        this.positions[i] -= World.height * this.positions.length;
       }
     }
   }
@@ -604,7 +628,7 @@ class World
     this.livesText = new Text("", 0, 10)
     this.playerTexts = new Array()
 
-    this.backgroudMgr = new BackgroundManager(10, new Array(images.background,images.background));
+    this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background,images.background));
   }
 
   update(blobs)
@@ -758,12 +782,7 @@ class World
           if (collision(bullet.x, bullet.y, bullet.w, bullet.h, enemy.x, enemy.y, enemy.w, enemy.h))
           {
             // Collision
-            --enemy.lives
-            if (enemy.lives <= 0)
-            {
-              World.CurrentScore += enemy.points
-              this.deleteEnemyPlane(enemy)
-            }
+            hitEnemy(enemy)
             this.deleteBullet(bullet)
             break // This bullet is destroyed, don't want it to hit anything else
           }
@@ -783,11 +802,7 @@ class World
           
           if (collision(bullet.x, bullet.y, bullet.w, bullet.h, player.x, player.y, player.w, player.h))
           {
-            --player.lives
-            if (player.lives <= 0)
-            {
-             player.offlineState = true
-            }
+            hitPlayer(player)
             this.deleteBullet(bullet)
             break // This bullet is destroyed, don't want it to hit anything else
           }
@@ -831,14 +846,8 @@ class World
 
        if (collision(enemy.x, enemy.y, enemy.w, enemy.h, player.x, player.y, player.w, player.h))
        {
-          World.CurrentScore += enemy.points
-          this.deleteEnemyPlane(enemy)
-
-          --player.lives
-          if (player.lives <= 0)
-          {
-           player.offlineState = true
-          }
+          killEnemy(enemy)
+          hitPlayer(player)
        }
       }
     }
@@ -1033,6 +1042,7 @@ class World
 }
 World.width = 192
 World.height = 157
+World.BackgroundSpeed = 10.0
 World.MaxPlayers = 2
 World.CurrentScore = 0
 
