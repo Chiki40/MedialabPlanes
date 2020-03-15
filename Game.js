@@ -38,7 +38,9 @@ function hitPlayer(player)
   --player.lives
   if (player.lives <= 0)
   {
-   player.offlineState = true
+    player.offlineState = true
+    World.BestScore[player.id] = max(World.BestScore[player.id], World.CurrentScore[player.id])
+    World.CurrentScore[player.id] = 0
   }
 }
 
@@ -641,6 +643,7 @@ class World
 
     this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background,images.background))
     World.CurrentScore.fill(0,0,World.MaxPlayers)
+    World.BestScore.fill(0,0,World.MaxPlayers)
 
   }
 
@@ -944,8 +947,9 @@ class World
     for(let i  = 0; i < this.playerPlanes.length; ++i)
     {
       let txt = "Player: " +  (i +1) + "\n";
+      txt += "Lives: " + this.playerPlanes[i].lives +"\n";
       txt += "Points: " + World.CurrentScore[i] + "\n",
-      txt += "Lives: " + this.playerPlanes[i].lives
+      txt += "Best Score: " + World.BestScore[i]
       this.playerUIText[i].setText(txt);
     }
   }
@@ -1056,6 +1060,7 @@ World.height = 157
 World.BackgroundSpeed = 10.0
 World.MaxPlayers = 2
 World.CurrentScore = new Array(World.MaxPlayers);
+World.BestScore = new Array(World.MaxPlayers);
 
 function setup()
 {
