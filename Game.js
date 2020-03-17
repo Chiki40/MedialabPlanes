@@ -29,15 +29,18 @@ function killEnemy(enemy, idPlayer) {
 function hitPlayer(player) {
   --player.lives
   if (player.lives <= 0) {
-    player.offlineState = true
-    World.BestScore[player.id] = max(World.BestScore[player.id], World.CurrentScore[player.id])
+    killPlayer(player)
+  }
+}
 
+function killPlayer(player) {
+    World.BestScore[player.id] = max(World.BestScore[player.id], World.CurrentScore[player.id])
     if (World.CurrentScore[player.id] > World.BestScoreEver) {
       this.saveBestScoreEver(World.CurrentScore[player.id])
     }
-
     World.CurrentScore[player.id] = 0
-  }
+    worldInstance.deletePlayerPlane(this)
+    worldInstance.remainingRespawnTime[player.id] = World.PlayerRespawnTime
 }
 
 function saveBestScoreEver(score) {
@@ -256,7 +259,7 @@ class PlayerPlane extends Plane {
       this.timeRemainingForDisconnection -= delta()
       if (this.timeRemainingForDisconnection <= 0.0) {
         print("Player " + this.id + " left")
-        worldInstance.deletePlayerPlane(this)
+        killPlayer(this)
       }
     }
   }
@@ -312,7 +315,7 @@ class PlayerPlane extends Plane {
 }
 PlayerPlane.trackingDistance = 10
 PlayerPlane.interShootTime = 10
-PlayerPlane.lives = 10
+PlayerPlane.lives = 2
 PlayerPlane.idleAnim = "playerPlane_idle"
 PlayerPlane.DisconnectionTime = 20.0
 
@@ -546,12 +549,16 @@ class World {
     this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background, images.background))
     World.CurrentScore.fill(0, 0, World.MaxPlayers)
     World.BestScore.fill(0, 0, World.MaxPlayers)
+    this.remainingRespawnTime = new Array(World.MaxPlayers)
+    // Undefined means that the player is not respawning
+    this.remainingRespawnTime.fill(undefined)
 
     this.bestScoreEverTxt = new Text("", 0, 20, CENTER)
 
   }
 
   update(blobs) {
+    this.manageRespawn()
     this.manageBlobs(blobs)
     this.manageEnemies()
     this.managePowerUps()
@@ -580,12 +587,48 @@ class World {
     this.checkCollisions()
     this.updateTexts()
   }
+  
+  manageRespawn() {
+    for (let i = 0; i < World.MaxPlayers; ++i) {
+      // This player is respawning
+      if (this.remainingRespawnTime[i] !== undefined) {
+        print("Player " + i + " respawning")
+        this.remainingRespawnTime[i] = max(this.remainingRespawnTime[i] - delta(), 0.0)
+        // Respawn ended
+        if (this.remainingRespawnTime[i] == 0.0) {
+          print("Player " + i + " respawned!!!!")
+          // Set the respawn time to undefined as this is our way to say it's not respawning anymore
+          this.remainingRespawnTime[i] = undefined
+        }
+      }
+    }
+  }
+  
+  getNewPlayerId() {
+    // For each allowed player Id
+    for (let i = 0; i < World.MaxPlayers; ++i) {
+      // Find an existing player plane with that id
+      let found = false
+      for (let j = 0; j < this.playerPlanes.length; ++j) {
+        if (this.playerPlanes[j].id == i) {
+          // Found it
+          found = true
+          break
+        }
+      }
+      if (!found) {
+        return i
+      }
+    }
+    return undefined
+  }
 
   manageBlobs(blobs) {
     // Create each player the first time we have a blob for him
     for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i) {
       if (this.playerPlanes.length <= i) {
-        this.addPlayerPlane(new PlayerPlane(i, blobs[i].x, blobs[i].y))
+        // Spawn a plane in 0,0 as a blob will be assigned for him in the code below
+        this.addPlayerPlane(new PlayerPlane(this.getNewPlayerId(), 0, 0))
       }
     }
 
@@ -887,6 +930,7 @@ World.MaxPlayers = 2
 World.CurrentScore = new Array(World.MaxPlayers);
 World.BestScore = new Array(World.MaxPlayers);
 World.BestScoreEver = api.storage.get('bestScoreEver');
+World.PlayerRespawnTime = 5.0
 if (World.BestScoreEver == null) {
   World.BestScoreEver = 0;
   saveBestScoreEver(0)
