@@ -538,14 +538,20 @@ class BackgroundManager extends Entity {
 
 class World {
   constructor() {
-    this.playerPlanes = new Array()
+    this.playerPlanes = new Array(World.MaxPlayers)
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
+      this.playerPlanes[i] = undefined
+    }
     this.bullets = new Array()
     this.powerUps = new Array()
     this.enemies = new Array()
     this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
 
     this.playerUIText = [new Text("", 2, 20, LEFT), new Text("", 0, 20, RIGHT)]
-    this.playerTexts = new Array()
+    this.playerTexts = new Array(World.MaxPlayers)
+    for (let i = 0; i < this.playerTexts.length; ++i) {
+      this.playerTexts[i] = undefined
+    }
 
     this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background, images.background))
     World.CurrentScore.fill(0, 0, World.MaxPlayers)
@@ -566,8 +572,10 @@ class World {
     this.backgroudMgr.update()
 
     // Players
-    for (const playerPlane of this.playerPlanes.values()) {
-      playerPlane.update()
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
+      if (this.playerPlanes[i] !== undefined) {
+        this.playerPlanes[i].update()
+      }
     }
 
     // Enemies
@@ -603,23 +611,14 @@ class World {
       }
     }
   }
-  
-  getPlayerIndexById(id) {
-    for (let i = 0; i < this.playerPlanes.length; ++i) {
-      if (this.playerPlanes[i].id == id) {
-        return i
-      }
-    }
-    return undefined
-  }
 
   manageBlobs(blobs) {
     // Create each player the first time we have a blob for him
     for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i) {
       // Player should not exist and not respawning
-      if (this.getPlayerIndexById(i) === undefined && this.remainingRespawnTime[i] === undefined) {
-        // Spawn a plane in x=0,y=0 as a blob will be assigned for him in the code below
-        this.addPlayerPlane(new PlayerPlane(i, 0, 0))
+      if (this.playerPlanes[i] === undefined && this.remainingRespawnTime[i] === undefined) {
+        // Spawn a plane
+        this.addPlayerPlane(i)
       }
     }
 
@@ -631,6 +630,9 @@ class World {
       blob.closestPlayer = undefined
       blob.closestDistance = 99999
       for (let j = 0; j < this.playerPlanes.length; ++j) {
+        if (this.playerPlanes[j] === undefined) {
+          continue
+        }
         let player = this.playerPlanes[j]
         let xDist = blob.x - player.x
         let yDist = blob.y - player.y
@@ -644,6 +646,9 @@ class World {
 
     // Then, each player chooses the closest blob between the ones which voted for him
     for (let i = 0; i < this.playerPlanes.length; ++i) {
+      if (this.playerPlanes[i] === undefined) {
+        continue
+      }
       let player = this.playerPlanes[i]
       // Let's see which blob is closer to this player position
       let closestBlobWhichVotedMe = undefined
@@ -670,6 +675,9 @@ class World {
 
     // Finally, each player who was not voted chooses the closest not-choosen blob
     for (let i = 0; i < this.playerPlanes.length; ++i) {
+      if (this.playerPlanes[i] === undefined) {
+        continue
+      }
       let player = this.playerPlanes[i]
       // Skip if this player has already assigned a blob
       if (player.blob !== undefined) {
@@ -717,6 +725,9 @@ class World {
       } else {
         //It's a enemy bullet, check collision with player
         for (let j = this.playerPlanes.length - 1; j >= 0; --j) {
+          if (this.playerPlanes[j] === undefined) {
+            continue
+          }
           let player = this.playerPlanes[j]
           // Offline players can't be killed
           if (player.offlineState) {
@@ -735,6 +746,9 @@ class World {
     for (let i = this.powerUps.length - 1; i >= 0; --i) {
       let powerUp = this.powerUps[i]
       for (let j = this.playerPlanes.length - 1; j >= 0; --j) {
+        if (this.playerPlanes[j] === undefined) {
+          continue
+        }
         let player = this.playerPlanes[j]
         // Offline players can't get PowerUps
         if (player.offlineState) {
@@ -753,8 +767,11 @@ class World {
       let enemy = this.enemies[i]
 
       for (let j = this.playerPlanes.length - 1; j >= 0; --j) {
+        if (this.playerPlanes[j] === undefined) {
+          continue
+        }
         let player = this.playerPlanes[j]
-        // Offline players can't get PowerUps
+        // Offline players can't be killed
         if (player.offlineState) {
           continue
         }
@@ -822,11 +839,10 @@ class World {
   updateTexts() {
     for (let i = 0; i < World.MaxPlayers; ++i) {
       let txt = "";
-      let playerIndex = this.getPlayerIndexById(i)
-      if (playerIndex !== undefined)
+      if (this.playerPlanes[i] !== undefined)
       {
-        let player = this.playerPlanes[playerIndex]
-        let playerMarkerText = this.playerTexts[playerIndex]
+        let player = this.playerPlanes[i]
+        let playerMarkerText = this.playerTexts[i]
         playerMarkerText.x = player.x
         playerMarkerText.y = player.y
         
@@ -837,7 +853,6 @@ class World {
       }
       this.playerUIText[i].setText(txt);
     }
-
     this.bestScoreEverTxt.setText("Best Score: " +  World.BestScoreEver)
   }
 
@@ -851,8 +866,10 @@ class World {
     }
 
     // Players
-    for (const playerPlane of this.playerPlanes.values()) {
-      playerPlane.draw()
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
+      if (this.playerPlanes[i] !== undefined) {
+        this.playerPlanes[i].draw()
+      }
     }
 
     // Bullets
@@ -871,15 +888,18 @@ class World {
     }
 
     for (let i = 0; i < this.playerTexts.length; ++i) {
-      this.playerTexts[i].draw();
+      if (this.playerTexts[i] !== undefined) {
+        this.playerTexts[i].draw();
+      }
     }
 
     this.bestScoreEverTxt.draw();
   }
 
-  addPlayerPlane(playerPlane) {
-    this.playerPlanes.push(playerPlane)
-    this.playerTexts.push(new Text("P" + (playerPlane.id + 1), CENTER, playerPlane.x, playerPlane.y, 20))
+  addPlayerPlane(id) {
+    let playerPlane = new PlayerPlane(id, 0, 0)
+    this.playerPlanes[id] = playerPlane
+    this.playerTexts[id] = new Text("P" + (id + 1), CENTER, playerPlane.x, playerPlane.y, 20)
   }
   addBullet(bullet) {
     this.bullets.push(bullet)
@@ -891,8 +911,8 @@ class World {
   deletePlayerPlane(playerPlane) {
     for (let i = 0; i < this.playerPlanes.length; ++i) {
       if (this.playerPlanes[i] == playerPlane) {
-        this.playerPlanes.splice(i, 1)
-        this.playerTexts.splice(i, 1)
+        this.playerPlanes[i] = undefined
+        this.playerTexts[i] = undefined
         break
       }
     }
