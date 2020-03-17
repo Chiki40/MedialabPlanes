@@ -34,13 +34,14 @@ function hitPlayer(player) {
 }
 
 function killPlayer(player) {
-    World.BestScore[player.id] = max(World.BestScore[player.id], World.CurrentScore[player.id])
-    if (World.CurrentScore[player.id] > World.BestScoreEver) {
-      this.saveBestScoreEver(World.CurrentScore[player.id])
-    }
-    World.CurrentScore[player.id] = 0
-    worldInstance.deletePlayerPlane(this)
-    worldInstance.remainingRespawnTime[player.id] = World.PlayerRespawnTime
+  print("Player " + player.id + " killed!")
+  World.BestScore[player.id] = max(World.BestScore[player.id], World.CurrentScore[player.id])
+  if (World.CurrentScore[player.id] > World.BestScoreEver) {
+    saveBestScoreEver(World.CurrentScore[player.id])
+  }
+  World.CurrentScore[player.id] = 0
+  worldInstance.remainingRespawnTime[player.id] = World.PlayerRespawnTime
+  worldInstance.deletePlayerPlane(player)
 }
 
 function saveBestScoreEver(score) {
@@ -315,7 +316,7 @@ class PlayerPlane extends Plane {
 }
 PlayerPlane.trackingDistance = 10
 PlayerPlane.interShootTime = 10
-PlayerPlane.lives = 2
+PlayerPlane.lives = 10
 PlayerPlane.idleAnim = "playerPlane_idle"
 PlayerPlane.DisconnectionTime = 20.0
 
@@ -592,7 +593,6 @@ class World {
     for (let i = 0; i < World.MaxPlayers; ++i) {
       // This player is respawning
       if (this.remainingRespawnTime[i] !== undefined) {
-        print("Player " + i + " respawning")
         this.remainingRespawnTime[i] = max(this.remainingRespawnTime[i] - delta(), 0.0)
         // Respawn ended
         if (this.remainingRespawnTime[i] == 0.0) {
@@ -604,19 +604,9 @@ class World {
     }
   }
   
-  getNewPlayerId() {
-    // For each allowed player Id
-    for (let i = 0; i < World.MaxPlayers; ++i) {
-      // Find an existing player plane with that id
-      let found = false
-      for (let j = 0; j < this.playerPlanes.length; ++j) {
-        if (this.playerPlanes[j].id == i) {
-          // Found it
-          found = true
-          break
-        }
-      }
-      if (!found) {
+  getPlayerIndexById(id) {
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
+      if (this.playerPlanes[i].id == id) {
         return i
       }
     }
@@ -626,9 +616,10 @@ class World {
   manageBlobs(blobs) {
     // Create each player the first time we have a blob for him
     for (let i = 0; i < blobs.length && i < World.MaxPlayers; ++i) {
-      if (this.playerPlanes.length <= i) {
-        // Spawn a plane in 0,0 as a blob will be assigned for him in the code below
-        this.addPlayerPlane(new PlayerPlane(this.getNewPlayerId(), 0, 0))
+      // Player should not exist and not respawning
+      if (this.getPlayerIndexById(i) === undefined && this.remainingRespawnTime[i] === undefined) {
+        // Spawn a plane in x=0,y=0 as a blob will be assigned for him in the code below
+        this.addPlayerPlane(new PlayerPlane(i, 0, 0))
       }
     }
 
@@ -817,7 +808,6 @@ class World {
     let randomX = random(0, World.width)
     let randomY = random(World.height / 2.0, World.height)
     let randomType = floor(random(3))
-    print(randomType)
     let newPowerUp = undefined
     if (randomType == 0) {
       newPowerUp = new ScorePowerUp(randomX, randomY)
@@ -830,12 +820,21 @@ class World {
   }
 
   updateTexts() {
-
-    for (let i = 0; i < this.playerPlanes.length; ++i) {
-      let txt = "Player: " + (i + 1) + "\n";
-      txt += "Lives: " + this.playerPlanes[i].lives + "\n";
-      txt += "Points: " + World.CurrentScore[i] + "\n",
+    for (let i = 0; i < World.MaxPlayers; ++i) {
+      let txt = "";
+      let playerIndex = this.getPlayerIndexById(i)
+      if (playerIndex !== undefined)
+      {
+        let player = this.playerPlanes[playerIndex]
+        let playerMarkerText = this.playerTexts[playerIndex]
+        playerMarkerText.x = player.x
+        playerMarkerText.y = player.y
+        
+        txt += "Player: " + (i + 1) + "\n";
+        txt += "Lives: " + player.lives + "\n";
+        txt += "Points: " + World.CurrentScore[i] + "\n",
         txt += "Best Score: " + World.BestScore[i]
+      }
       this.playerUIText[i].setText(txt);
     }
 
@@ -871,8 +870,8 @@ class World {
       this.playerUIText[i].draw();
     }
 
-    for (const playerText of this.playerTexts.values()) {
-      playerText.draw()
+    for (let i = 0; i < this.playerTexts.length; ++i) {
+      this.playerTexts[i].draw();
     }
 
     this.bestScoreEverTxt.draw();
@@ -880,7 +879,7 @@ class World {
 
   addPlayerPlane(playerPlane) {
     this.playerPlanes.push(playerPlane)
-    this.playerTexts.push(new Text("P" + playerPlane.id, playerPlane.x, playerPlane.y, 20))
+    this.playerTexts.push(new Text("P" + (playerPlane.id + 1), CENTER, playerPlane.x, playerPlane.y, 20))
   }
   addBullet(bullet) {
     this.bullets.push(bullet)
