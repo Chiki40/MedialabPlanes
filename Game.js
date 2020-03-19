@@ -22,7 +22,7 @@ function hitEnemy(enemy, playerID) {
 }
 
 function killEnemy(enemy, idPlayer) {
-  World.CurrentScore[idPlayer] += enemy.points
+  worldInstance.CurrentScore[idPlayer] += enemy.points
   worldInstance.deleteEnemy(enemy)
 }
 
@@ -35,11 +35,11 @@ function hitPlayer(player) {
 
 function killPlayer(player) {
   print("Player " + player.id + " killed!")
-  World.BestScore[player.id] = max(World.BestScore[player.id], World.CurrentScore[player.id])
-  if (World.CurrentScore[player.id] > World.BestScoreEver) {
-    saveBestScoreEver(World.CurrentScore[player.id])
+  worldInstance.BestScore[player.id] = max(worldInstance.BestScore[player.id], worldInstance.CurrentScore[player.id])
+  if (worldInstance.CurrentScore[player.id] > worldInstance.BestScoreEver) {
+    saveBestScoreEver(worldInstance.CurrentScore[player.id])
   }
-  World.CurrentScore[player.id] = 0
+  worldInstance.CurrentScore[player.id] = 0
   worldInstance.remainingRespawnTime[player.id] = World.PlayerRespawnTime
   worldInstance.deletePlayer(player.id)
 }
@@ -475,7 +475,7 @@ class ScorePowerUp extends PowerUp {
 
   applyEffect(playerPlane) {
     super.applyEffect(playerPlane)
-    World.CurrentScore[playerPlane.id] += ScorePowerUp.ScoreGiven
+    worldInstance.CurrentScore[playerPlane.id] += ScorePowerUp.ScoreGiven
   }
 }
 ScorePowerUp.ScoreGiven = 50
@@ -558,14 +558,21 @@ class World {
     // TODO: Use random to get one of the backgrounds arrays
     let backgroundSelected = images.backgroundFarm
     this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, backgroundSelected)
-    World.CurrentScore.fill(0, 0, World.MaxPlayers)
-    World.BestScore.fill(0, 0, World.MaxPlayers)
     this.remainingRespawnTime = new Array(World.MaxPlayers)
     // Undefined means that the player is not respawning
     this.remainingRespawnTime.fill(undefined)
 
     this.bestScoreEverTxt = new Text("", 0, 20, CENTER)
-
+    
+    this.CurrentScore = new Array(World.MaxPlayers)
+    this.BestScore = new Array(World.MaxPlayers)
+    this.CurrentScore.fill(0, 0, World.MaxPlayers)
+    this.BestScore.fill(0, 0, World.MaxPlayers)
+    this.BestScoreEver = api.storage.get('bestScoreEver')
+    if (this.BestScoreEver == null) {
+      this.BestScoreEver = 0
+      saveBestScoreEver(0)
+    }
   }
 
   update(blobs) {
@@ -852,12 +859,12 @@ class World {
         
         txt += "Player: " + (i + 1) + "\n"
         txt += "Lives: " + player.lives + "\n"
-        txt += "Points: " + World.CurrentScore[i] + "\n",
-        txt += "Best Score: " + World.BestScore[i]
+        txt += "Points: " + worldInstance.CurrentScore[i] + "\n",
+        txt += "Best Score: " + worldInstance.BestScore[i]
       }
       this.playerUIText[i].setText(txt)
     }
-    this.bestScoreEverTxt.setText("Best Score: " +  World.BestScoreEver)
+    this.bestScoreEverTxt.setText("Best Score: " +  worldInstance.BestScoreEver)
   }
 
   draw() {
@@ -949,14 +956,7 @@ World.width = 192
 World.height = 157
 World.BackgroundSpeed = 10.0
 World.MaxPlayers = 2
-World.CurrentScore = new Array(World.MaxPlayers)
-World.BestScore = new Array(World.MaxPlayers)
-World.BestScoreEver = api.storage.get('bestScoreEver')
 World.PlayerRespawnTime = 5.0
-if (World.BestScoreEver == null) {
-  World.BestScoreEver = 0
-  saveBestScoreEver(0)
-}
 
 function setup() {
   createCanvas(World.width, World.height)
