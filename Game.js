@@ -36,8 +36,10 @@ function hitPlayer(player) {
 function killPlayer(player) {
   print("Player " + player.id + " killed!")
   worldInstance.BestScore[player.id] = max(worldInstance.BestScore[player.id], worldInstance.CurrentScore[player.id])
-  if (worldInstance.CurrentScore[player.id] > worldInstance.BestScoreEver) {
-    saveBestScoreEver(worldInstance.CurrentScore[player.id])
+  let playerScore =  worldInstance.CurrentScore[player.id]
+  if (playerScore > BestScoreEver) {
+    BestScoreEver = playerScore
+    saveBestScoreEver(playerScore)
   }
   worldInstance.CurrentScore[player.id] = 0
   worldInstance.remainingRespawnTime[player.id] = World.PlayerRespawnTime
@@ -568,9 +570,9 @@ class World {
     this.BestScore = new Array(World.MaxPlayers)
     this.CurrentScore.fill(0, 0, World.MaxPlayers)
     this.BestScore.fill(0, 0, World.MaxPlayers)
-    this.BestScoreEver = api.storage.get('bestScoreEver')
-    if (this.BestScoreEver == null) {
-      this.BestScoreEver = 0
+    BestScoreEver = api.storage.get('bestScoreEver')
+    if (BestScoreEver == null) {
+      BestScoreEver = 0
       saveBestScoreEver(0)
     }
   }
@@ -864,7 +866,7 @@ class World {
       }
       this.playerUIText[i].setText(txt)
     }
-    this.bestScoreEverTxt.setText("Best Score: " +  worldInstance.BestScoreEver)
+    this.bestScoreEverTxt.setText("Best Score: " +  BestScoreEver)
   }
 
   draw() {
@@ -951,12 +953,29 @@ class World {
       }
     }
   }
+  
+  Destroy() {
+    for (let i = 0; i < this.playerPlanes.length; ++i) {
+      this.playerPlanes[i] = undefined
+      this.playerTexts[i] = undefined
+    }
+    this.playerPlanes.splice(0, this.playerPlanes.length)
+    this.bullets.splice(0, this.bullets.length)
+    this.powerUps.splice(0, this.powerUps.length)
+    this.enemies.splice(0, this.enemies.length)
+    this.playerUIText = undefined
+    this.remainingRespawnTime.splice(0, this.remainingRespawnTime.length)
+    this.bestScoreEverTxt = undefined
+    this.CurrentScore.splice(0, this.CurrentScore.length)
+    this.BestScore.splice(0, this.CurrentScore.length)
+  }
 }
 World.width = 192
 World.height = 157
 World.BackgroundSpeed = 10.0
 World.MaxPlayers = 2
 World.PlayerRespawnTime = 5.0
+BestScoreEver = undefined
 
 function setup() {
   createCanvas(World.width, World.height)
@@ -971,8 +990,9 @@ function setup() {
   worldInstance = new World()
 }
 
-const images = {}
-const animations = {}
+images = {}
+animations = {}
+endingScreenImage = undefined
 
 function range(from, to) {
   return [...Array(to).keys()].slice(from)
@@ -983,7 +1003,7 @@ function getSpritesList(name, first, last) {
 }
 
 function preload() {
-  const url = '/media/usera4300b002b'
+  let url = '/media/usera4300b002b'
 
   animations.player1Plane_idle = {
     frameList: getSpritesList("player1_idle", 0, 2),
@@ -1010,7 +1030,7 @@ function preload() {
     timePerFrame: 0.5,
     loop: true
   }
-  const pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
+  let pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
   for (const png of pngs) {
     images[png] = loadImage(`${url}/${png}.png`)
   }
@@ -1028,8 +1048,39 @@ function preload() {
 }
 
 function draw() {
-  worldInstance.update(
-    api.tracking.getBlobs()
-  )
-  worldInstance.draw()
+  // worldInstance is undefined when api.project.onAboutToStop is called
+  if (worldInstance !== undefined) {
+    worldInstance.update(
+      api.tracking.getBlobs()
+    )
+    worldInstance.draw()
+  }
+  else {
+    // World destroyed, show ending screen
+    if (endingScreenImage === undefined) {
+      endingScreenImage = createImage(192, 157)
+      endingScreenImage.loadPixels()
+      for (let i = 0; i < endingScreenImage.width; i++) {
+        for (let j = 0; j < endingScreenImage.height; j++) {
+          endingScreenImage.set(i, j, color(0, 0, 0))
+        }
+      }
+      endingScreenImage.updatePixels()
+    }
+    image(endingScreenImage, 0, 0)
+    text("THE GAME HAS ENDED", World.width * 0.1, World.height * 0.3, World.width * 0.8, World.height * 0.15)
+    text("Highscore: " + BestScoreEver, World.width * 0.1, World.height * 0.55, World.width * 0.8, World.height * 0.15)
+  }
 }
+
+api.project.onAboutToStop(function () {
+  // worldInstance is undefined if api.project.onAboutToStop was already called
+  if (worldInstance !== undefined) {
+    worldInstance.Destroy()
+    worldInstance = undefined
+    
+    // Global stuff from preload
+    animations = undefined
+    images = undefined
+  }
+})
