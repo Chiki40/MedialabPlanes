@@ -23,7 +23,7 @@ function hitEnemy(enemy, playerID) {
 
 function killEnemy(enemy, idPlayer) {
   World.CurrentScore[idPlayer] += enemy.points
-  worldInstance.deleteEnemyPlane(enemy)
+  worldInstance.deleteEnemy(enemy)
 }
 
 function hitPlayer(player) {
@@ -41,7 +41,7 @@ function killPlayer(player) {
   }
   World.CurrentScore[player.id] = 0
   worldInstance.remainingRespawnTime[player.id] = World.PlayerRespawnTime
-  worldInstance.deletePlayerPlane(player.id)
+  worldInstance.deletePlayer(player.id)
 }
 
 function saveBestScoreEver(score) {
@@ -178,8 +178,8 @@ class EnemyPlane extends Plane {
   move() {
     this.y += delta() * this.velocity
     if (this.y + (this.h / 2.0) < 0 || this.y - (this.h / 2.0) > World.height) {
-      // Delete plane out of bounds
-      worldInstance.deleteEnemyPlane(this)
+      // Delete plane out of bounds (without killing it)
+      worldInstance.deleteEnemy(this)
     }
   }
 
@@ -914,7 +914,7 @@ class World {
     this.enemies.push(enemy)
   }
 
-  deletePlayerPlane(id) {
+  deletePlayer(id) {
     if (this.playerPlanes[id] !== undefined) {
       this.playerPlanes[id] = undefined
       this.playerTexts[id] = undefined
@@ -936,9 +936,9 @@ class World {
       }
     }
   }
-  deleteEnemyPlane(plane) {
+  deleteEnemy(enemy) {
     for (let i = 0; i < this.enemies.length; ++i) {
-      if (this.enemies[i] == plane) {
+      if (this.enemies[i] == enemy) {
         this.enemies.splice(i, 1)
         break
       }
