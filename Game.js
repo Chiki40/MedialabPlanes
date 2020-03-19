@@ -41,7 +41,7 @@ function killPlayer(player) {
   }
   World.CurrentScore[player.id] = 0
   worldInstance.remainingRespawnTime[player.id] = World.PlayerRespawnTime
-  worldInstance.deletePlayerPlane(player)
+  worldInstance.deletePlayerPlane(player.id)
 }
 
 function saveBestScoreEver(score) {
@@ -622,7 +622,7 @@ class World {
       // Player should not exist and not respawning
       if (this.playerPlanes[i] === undefined && this.remainingRespawnTime[i] === undefined) {
         // Spawn a plane
-        this.addPlayerPlane(i)
+        this.addPlayer(new PlayerPlane(i, 0, 0))
       }
     }
 
@@ -802,14 +802,14 @@ class World {
     let randomX = random(0, World.width)
     if (randomValue < HardPlane.prob) {
       //hard plane
-      this.enemies.push(new HardPlane(randomX, 0)) //this could be random
+      this.addEnemy(new HardPlane(randomX, 0)) //this could be random
     } else {
       if (randomValue - HardPlane.prob < KamikazePlane.prob) {
         //kamikaze
-        this.enemies.push(new KamikazePlane(randomX, 0)) //this could be random
+        this.addEnemy(new KamikazePlane(randomX, 0)) //this could be random
       } else {
         //basic plane
-        this.enemies.push(new BasicPlane(randomX, 0)) //this could be random
+        this.addEnemy(new BasicPlane(randomX, 0)) //this could be random
       }
     }
   }
@@ -900,10 +900,9 @@ class World {
     this.bestScoreEverTxt.draw()
   }
 
-  addPlayerPlane(id) {
-    let playerPlane = new PlayerPlane(id, 0, 0)
-    this.playerPlanes[id] = playerPlane
-    this.playerTexts[id] = new Text("P" + (id + 1), CENTER, playerPlane.x, playerPlane.y, 20)
+  addPlayer(player) {
+    this.playerPlanes[player.id] = player
+    this.playerTexts[player.id] = new Text("P" + (player.id + 1), CENTER, player.x, player.y, 20)
   }
   addBullet(bullet) {
     this.bullets.push(bullet)
@@ -911,14 +910,14 @@ class World {
   addPowerUp(powerUp) {
     this.powerUps.push(powerUp)
   }
+  addEnemy(enemy) {
+    this.enemies.push(enemy)
+  }
 
-  deletePlayerPlane(playerPlane) {
-    for (let i = 0; i < this.playerPlanes.length; ++i) {
-      if (this.playerPlanes[i] == playerPlane) {
-        this.playerPlanes[i] = undefined
-        this.playerTexts[i] = undefined
-        break
-      }
+  deletePlayerPlane(id) {
+    if (this.playerPlanes[id] !== undefined) {
+      this.playerPlanes[id] = undefined
+      this.playerTexts[id] = undefined
     }
   }
   deleteBullet(bullet) {
