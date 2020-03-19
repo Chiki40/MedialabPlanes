@@ -219,7 +219,7 @@ class EnemyPlane extends Plane {
 
 class PlayerPlane extends Plane {
   constructor(id, x, y, interShootTime = PlayerPlane.interShootTime) {
-    super(x, y, interShootTime, PlayerPlane.lives, PlayerPlane.idleAnim, id)
+    super(x, y, interShootTime, PlayerPlane.lives, id == 0 ? PlayerPlane.player1IdleAnim : PlayerPlane.player2IdleAnim, id)
     this.isEnemy = false
 
     // For RapidFire PowerUp
@@ -317,7 +317,8 @@ class PlayerPlane extends Plane {
 PlayerPlane.trackingDistance = 10
 PlayerPlane.interShootTime = 10
 PlayerPlane.lives = 10
-PlayerPlane.idleAnim = "playerPlane_idle"
+PlayerPlane.player1IdleAnim = "player1Plane_idle"
+PlayerPlane.player2IdleAnim = "player2Plane_idle"
 PlayerPlane.DisconnectionTime = 20.0
 
 
@@ -553,7 +554,10 @@ class World {
       this.playerTexts[i] = undefined
     }
 
-    this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, new Array(images.background, images.background))
+    // Setting background
+    // TODO: Use random to get one of the backgrounds arrays
+    let backgroundSelected = images.backgroundFarm
+    this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, backgroundSelected)
     World.CurrentScore.fill(0, 0, World.MaxPlayers)
     World.BestScore.fill(0, 0, World.MaxPlayers)
     this.remainingRespawnTime = new Array(World.MaxPlayers)
@@ -982,8 +986,13 @@ function getSpritesList(name, first, last) {
 function preload() {
   const url = '/media/usera4300b002b'
 
-  animations.playerPlane_idle = {
-    frameList: getSpritesList("plane_idle", 0, 2),
+  animations.player1Plane_idle = {
+    frameList: getSpritesList("player1_idle", 0, 2),
+    timePerFrame: 0.5,
+    loop: true
+  }
+  animations.player2Plane_idle = {
+    frameList: getSpritesList("player2_idle", 0, 2),
     timePerFrame: 0.5,
     loop: true
   }
@@ -1010,7 +1019,13 @@ function preload() {
   images.scorePowerUp = loadImage(`${url}/powerup_score.png`)
   images.rapidFirePowerUp = loadImage(`${url}/powerup_score.png`)
   images.tripleFirePowerUp = loadImage(`${url}/powerup_score.png`)
-  images.background = loadImage(`${url}/background.png`)
+  images.backgroundFarm = new Array(
+                            loadImage(`${url}/background_farm_01.png`),
+                            loadImage(`${url}/background_farm_02.png`),
+                            loadImage(`${url}/background_farm_03.png`),
+                            loadImage(`${url}/background_farm_04.png`),
+                            loadImage(`${url}/background_farm_05.png`)
+                          )
 }
 
 function draw() {
