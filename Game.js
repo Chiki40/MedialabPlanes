@@ -45,7 +45,7 @@ function killPlayer(player) {
 }
 
 function saveBestScoreEver(score) {
-  api.storage.set('bestScoreEver', score);
+  api.storage.set('bestScoreEver', score)
 }
 
 class Entity {
@@ -121,7 +121,7 @@ class Text extends Entity {
   draw() {
     fill('white')
     stroke('black')
-    textAlign(this.align);
+    textAlign(this.align)
     text(this.txt, this.x, this.y, this.w, this.h)
   }
 
@@ -842,7 +842,7 @@ class World {
 
   updateTexts() {
     for (let i = 0; i < World.MaxPlayers; ++i) {
-      let txt = "";
+      let txt = ""
       if (this.playerPlanes[i] !== undefined)
       {
         let player = this.playerPlanes[i]
@@ -850,12 +850,12 @@ class World {
         playerMarkerText.x = player.x
         playerMarkerText.y = player.y
         
-        txt += "Player: " + (i + 1) + "\n";
-        txt += "Lives: " + player.lives + "\n";
+        txt += "Player: " + (i + 1) + "\n"
+        txt += "Lives: " + player.lives + "\n"
         txt += "Points: " + World.CurrentScore[i] + "\n",
         txt += "Best Score: " + World.BestScore[i]
       }
-      this.playerUIText[i].setText(txt);
+      this.playerUIText[i].setText(txt)
     }
     this.bestScoreEverTxt.setText("Best Score: " +  World.BestScoreEver)
   }
@@ -888,16 +888,16 @@ class World {
 
     // Texts
     for (let i = 0; i < this.playerUIText.length; ++i) {
-      this.playerUIText[i].draw();
+      this.playerUIText[i].draw()
     }
 
     for (let i = 0; i < this.playerTexts.length; ++i) {
       if (this.playerTexts[i] !== undefined) {
-        this.playerTexts[i].draw();
+        this.playerTexts[i].draw()
       }
     }
 
-    this.bestScoreEverTxt.draw();
+    this.bestScoreEverTxt.draw()
   }
 
   addPlayerPlane(id) {
@@ -950,12 +950,12 @@ World.width = 192
 World.height = 157
 World.BackgroundSpeed = 10.0
 World.MaxPlayers = 2
-World.CurrentScore = new Array(World.MaxPlayers);
-World.BestScore = new Array(World.MaxPlayers);
-World.BestScoreEver = api.storage.get('bestScoreEver');
+World.CurrentScore = new Array(World.MaxPlayers)
+World.BestScore = new Array(World.MaxPlayers)
+World.BestScoreEver = api.storage.get('bestScoreEver')
 World.PlayerRespawnTime = 5.0
 if (World.BestScoreEver == null) {
-  World.BestScoreEver = 0;
+  World.BestScoreEver = 0
   saveBestScoreEver(0)
 }
 
@@ -1020,11 +1020,11 @@ function preload() {
   images.rapidFirePowerUp = loadImage(`${url}/powerup_score.png`)
   images.tripleFirePowerUp = loadImage(`${url}/powerup_score.png`)
   images.backgroundFarm = new Array(
-                            loadImage(`${url}/background_farm_01.png`),
-                            loadImage(`${url}/background_farm_02.png`),
-                            loadImage(`${url}/background_farm_03.png`),
+                            loadImage(`${url}/background_farm_05.png`),
                             loadImage(`${url}/background_farm_04.png`),
-                            loadImage(`${url}/background_farm_05.png`)
+                            loadImage(`${url}/background_farm_03.png`),
+                            loadImage(`${url}/background_farm_02.png`),
+                            loadImage(`${url}/background_farm_01.png`)
                           )
 }
 
