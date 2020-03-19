@@ -426,14 +426,7 @@ class Bullet extends Entity {
   }
 
   draw() {
-    if (this.isFromEnemy) {
-      tint(255, 0, 0) // Tint red
-    }
-    // Sprite also depends on bullet's shooter as it may face up or down
-    image(images.bullet, this.x, this.y)
-    if (this.isFromEnemy) {
-      noTint() // Disable tint
-    }
+    image(this.isFromEnemy ? images.bulletBad : images.bulletGood, this.x, this.y)
   }
 }
 Bullet.speed = 25.0
@@ -873,7 +866,7 @@ class World {
     // Background
     this.backgroudMgr.draw()
 
-    // Bullets
+    // Enemies
     for (const enemy of this.enemies.values()) {
       enemy.draw()
     }
@@ -1034,7 +1027,8 @@ function preload() {
   for (const png of pngs) {
     images[png] = loadImage(`${url}/${png}.png`)
   }
-  images.bullet = loadImage(`${url}/bullet_up.png`)
+  images.bulletGood = loadImage(`${url}/Laser_blue.png`)
+  images.bulletBad = loadImage(`${url}/Laser_red.png`)
   images.scorePowerUp = loadImage(`${url}/powerup_score.png`)
   images.rapidFirePowerUp = loadImage(`${url}/powerup_score.png`)
   images.tripleFirePowerUp = loadImage(`${url}/powerup_score.png`)
