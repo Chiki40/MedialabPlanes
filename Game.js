@@ -498,6 +498,19 @@ class ScorePowerUp extends PowerUp {
 }
 ScorePowerUp.ScoreGiven = 50
 
+class LivesPowerUp extends PowerUp {
+  constructor(x = 0, y = 0) {
+    super(x, y)
+    this.image = images.livesPowerUp
+  }
+
+  applyEffect(playerPlane) {
+    super.applyEffect(playerPlane)
+    playerPlane.lives += LivesPowerUp.LivesGiven
+  }
+}
+LivesPowerUp.LivesGiven = 1
+
 class RapidFirePowerUp extends PowerUp {
   constructor(x = 0, y = 0) {
     super(x, y)
@@ -877,14 +890,16 @@ class World {
   generateRandomPowerUp() {
     let randomX = random(0, World.width)
     let randomY = random(World.height / 2.0, World.height)
-    let randomType = floor(random(3))
+    let randomType = floor(random(4))
     let newPowerUp = undefined
     if (randomType == 0) {
       newPowerUp = new ScorePowerUp(randomX, randomY)
     } else if (randomType == 1) {
       newPowerUp = new RapidFirePowerUp(randomX, randomY)
-    } else {
+    } else if(randomType == 2){
       newPowerUp = new TripleFirePowerUp(randomX, randomY)
+    } else if(randomType == 3){
+      newPowerUp =  new LivesPowerUp(randomX, randomY)
     }
     this.powerUps.push(newPowerUp)
   }
@@ -1100,6 +1115,7 @@ function preload() {
   images.bulletGood = loadImage(`${url}/Laser_blue.png`)
   images.bulletBad = loadImage(`${url}/Laser_red.png`)
   images.scorePowerUp = loadImage(`${url}/ball_blue.png`)
+  images.livesPowerUp = loadImage(`${url}/ball_red.png`)
   images.rapidFirePowerUp = loadImage(`${url}/ball_yellow.png`)
   images.tripleFirePowerUp = loadImage(`${url}/ball_green.png`)
   images.backgroundFarm = new Array(
