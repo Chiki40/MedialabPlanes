@@ -1018,6 +1018,7 @@ class World {
     this.playerPlanes.splice(0, this.playerPlanes.length)
     this.bullets.splice(0, this.bullets.length)
     this.powerUps.splice(0, this.powerUps.length)
+    this.explosions.splice(0, this.explosions.length)
     this.enemies.splice(0, this.enemies.length)
     this.playerUIText = undefined
     this.remainingRespawnTime.splice(0, this.remainingRespawnTime.length)
