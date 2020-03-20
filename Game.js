@@ -139,12 +139,11 @@ class Text extends Entity {
 Text.size = undefined
 
 class Plane extends AnimatedEntity {
-  constructor(x, y, interShootTime, lives, animation, id, w = Plane.width, h = Plane.height) {
+  constructor(x, y, interShootTime, lives, animation, w = Plane.width, h = Plane.height) {
     super(animation, x, y, w, h)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
     this.lives = lives
-    this.id = id
   }
 
   shoot() {
@@ -221,7 +220,9 @@ class EnemyPlane extends Plane {
 
 class PlayerPlane extends Plane {
   constructor(id, x, y, interShootTime = PlayerPlane.interShootTime) {
-    super(x, y, interShootTime, PlayerPlane.lives, id == 0 ? PlayerPlane.player1IdleAnim : PlayerPlane.player2IdleAnim, id)
+    super(x, y, interShootTime, PlayerPlane.lives, id == 0 ? PlayerPlane.player1IdleAnim : PlayerPlane.player2IdleAnim)
+    this.id = id
+    
     this.isEnemy = false
 
     // For RapidFire PowerUp
@@ -502,10 +503,8 @@ class TripleFirePowerUp extends PowerUp {
 }
 TripleFirePowerUp.Duration = 10.0
 
-class BackgroundManager extends Entity {
+class BackgroundManager {
   constructor(speed, images) {
-    super(0, 0, 0, 0)
-
     this.speed = speed
     this.images = images
     this.positions = new Array()
@@ -1029,9 +1028,9 @@ function preload() {
   }
   images.bulletGood = loadImage(`${url}/Laser_blue.png`)
   images.bulletBad = loadImage(`${url}/Laser_red.png`)
-  images.scorePowerUp = loadImage(`${url}/powerup_score.png`)
-  images.rapidFirePowerUp = loadImage(`${url}/powerup_score.png`)
-  images.tripleFirePowerUp = loadImage(`${url}/powerup_score.png`)
+  images.scorePowerUp = loadImage(`${url}/ball_blue.png`)
+  images.rapidFirePowerUp = loadImage(`${url}/ball_yellow.png`)
+  images.tripleFirePowerUp = loadImage(`${url}/ball_green.png`)
   images.backgroundFarm = new Array(
                             loadImage(`${url}/background_farm_05.png`),
                             loadImage(`${url}/background_farm_04.png`),
