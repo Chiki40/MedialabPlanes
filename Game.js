@@ -257,12 +257,9 @@ class PlayerPlane extends Plane {
   updateBlob() {
     // World assigns a blob to us in manageBlobs function, before calling PlayerPlane Update
     if (this.blob !== undefined) {
-      const x = this.blob.x - this.x
-      const y = this.blob.y - this.y
-      if (x !== 0 || y !== 0) {
-        this.x = this.blob.x
-        this.y = this.blob.y
-      }
+      // Invert coordinates, so it's more intuitive to the user
+      this.x = World.width - this.blob.x
+      this.y = World.height - this.blob.y
       // Player is online. Update disconnection time while player exists
       this.offlineState = false
       this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
@@ -702,8 +699,9 @@ class World {
           continue
         }
         let player = this.playerPlanes[j]
-        let xDist = blob.x - player.x
-        let yDist = blob.y - player.y
+        // For each comparison, convert blob space into player space (inverting axis)
+        let xDist = (World.width - blob.x) - player.x
+        let yDist = (World.height - blob.y) - player.y
         let distance = Math.sqrt(xDist * xDist + yDist * yDist)
         if (distance < blob.closestDistance) {
           blob.closestPlayer = player
@@ -761,8 +759,9 @@ class World {
           continue
         }
 
-        let xDist = blob.x - player.x
-        let yDist = blob.y - player.y
+        // For each comparison, convert blob space into player space (inverting axis)
+        let xDist = (World.width - blob.x) - player.x
+        let yDist = (World.height - blob.y) - player.y
         let distance = Math.sqrt(xDist * xDist + yDist * yDist)
         if (distance < closestBlobDistance) {
           closestBlob = blob
