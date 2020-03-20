@@ -22,7 +22,13 @@ function hitEnemy(enemy, playerID) {
 }
 
 function killEnemy(enemy, idPlayer) {
+  // Score
   worldInstance.CurrentScore[idPlayer] += enemy.points
+  
+  // Explosion
+  worldInstance.addExplosion(new Explosion(enemy.x, enemy.y))
+  
+  // Deletion
   worldInstance.deleteEnemy(enemy)
 }
 
@@ -34,7 +40,7 @@ function hitPlayer(player) {
 }
 
 function killPlayer(player) {
-  print("Player " + player.id + " killed!")
+  // Score
   worldInstance.BestScore[player.id] = max(worldInstance.BestScore[player.id], worldInstance.CurrentScore[player.id])
   let playerScore =  worldInstance.CurrentScore[player.id]
   if (playerScore > BestScoreEver) {
@@ -42,7 +48,14 @@ function killPlayer(player) {
     saveBestScoreEver(playerScore)
   }
   worldInstance.CurrentScore[player.id] = 0
+  
+  // Explosion
+  worldInstance.addExplosion(new Explosion(player.x, player.y))
+  
+  // Respawn time
   worldInstance.remainingRespawnTime[player.id] = World.PlayerRespawnTime
+  
+  // Deletion
   worldInstance.deletePlayer(player.id)
 }
 
@@ -238,7 +251,6 @@ class PlayerPlane extends Plane {
     // For disconnection
     this.timeRemainingForDisconnection = PlayerPlane.DisconnectionTime
     this.offlineState = false
-
     print("Player " + id + " has joined!" + " and the lives are " + this.lives)
   }
 
@@ -263,7 +275,18 @@ class PlayerPlane extends Plane {
       this.timeRemainingForDisconnection -= delta()
       if (this.timeRemainingForDisconnection <= 0.0) {
         print("Player " + this.id + " left")
-        killPlayer(this)
+        
+        // Score
+        worldInstance.BestScore[this.id] = max(worldInstance.BestScore[this.id], worldInstance.CurrentScore[this.id])
+        let playerScore =  worldInstance.CurrentScore[this.id]
+        if (playerScore > BestScoreEver) {
+          BestScoreEver = playerScore
+          saveBestScoreEver(playerScore)
+        }
+        worldInstance.CurrentScore[this.id] = 0
+        
+        // Deletion
+        worldInstance.deletePlayer(this.id)
       }
     }
   }
@@ -444,7 +467,6 @@ class PowerUp extends Entity {
   update() {
     this.remainingLifeTime -= delta()
     if (this.remainingLifeTime <= 0) {
-      print("PowerUp disappears")
       // Delete PowerUp out of bounds
       worldInstance.deletePowerUp(this)
     }
@@ -503,6 +525,28 @@ class TripleFirePowerUp extends PowerUp {
 }
 TripleFirePowerUp.Duration = 10.0
 
+class Explosion extends AnimatedEntity {
+  constructor(x, y) {
+    super(Explosion.animation, x, y, Explosion.width, Explosion.height)
+  }
+
+  update() {
+    super.update()
+  }
+
+  draw() {
+    super.draw()
+  }
+}
+Explosion.width = 20
+Explosion.height = 20
+Explosion.animation = "explosion"
+Explosion.OnExplotionEndCallback = function (explosion)
+{
+  // Delete the explosion when animation finishes
+  worldInstance.deleteExplosion(explosion)
+}
+
 class BackgroundManager {
   constructor(speed, images) {
     this.speed = speed
@@ -539,6 +583,7 @@ class World {
     }
     this.bullets = new Array()
     this.powerUps = new Array()
+    this.explosions = new Array()
     this.enemies = new Array()
     this.timeForNextPowerUp = PowerUp.timeBetweenPowerUps
 
@@ -597,6 +642,12 @@ class World {
     for (const powerUp of this.powerUps.values()) {
       powerUp.update()
     }
+    
+    // Explosions
+    for (const explosion of this.explosions.values()) {
+      explosion.update()
+    }
+
 
     this.checkCollisions()
     this.updateTexts()
@@ -609,7 +660,6 @@ class World {
         this.remainingRespawnTime[i] = max(this.remainingRespawnTime[i] - delta(), 0.0)
         // Respawn ended
         if (this.remainingRespawnTime[i] == 0.0) {
-          print("Player " + i + " respawned!!!!")
           // Set the respawn time to undefined as this is our way to say it's not respawning anymore
           this.remainingRespawnTime[i] = undefined
         }
@@ -763,7 +813,6 @@ class World {
         if (collision(powerUp.x, powerUp.y, powerUp.w, powerUp.h, player.x, player.y, player.w, player.h)) {
           powerUp.applyEffect(player)
           this.deletePowerUp(powerUp)
-          print("Picked up powerUp")
         }
       }
     }
@@ -826,7 +875,6 @@ class World {
   }
 
   generateRandomPowerUp() {
-    print("PowerUp appears")
     let randomX = random(0, World.width)
     let randomY = random(World.height / 2.0, World.height)
     let randomType = floor(random(3))
@@ -886,6 +934,11 @@ class World {
     for (const powerUp of this.powerUps.values()) {
       powerUp.draw()
     }
+    
+    // Explosions
+    for (const explosion of this.explosions.values()) {
+      explosion.draw()
+    }
 
     // Texts
     for (let i = 0; i < this.playerUIText.length; ++i) {
@@ -911,6 +964,9 @@ class World {
   addPowerUp(powerUp) {
     this.powerUps.push(powerUp)
   }
+  addExplosion(explosion) {
+    this.explosions.push(explosion)
+  }
   addEnemy(enemy) {
     this.enemies.push(enemy)
   }
@@ -933,6 +989,14 @@ class World {
     for (let i = 0; i < this.powerUps.length; ++i) {
       if (this.powerUps[i] == powerUp) {
         this.powerUps.splice(i, 1)
+        break
+      }
+    }
+  }
+  deleteExplosion(explosion) {
+    for (let i = 0; i < this.explosions.length; ++i) {
+      if (this.explosions[i] == explosion) {
+        this.explosions.splice(i, 1)
         break
       }
     }
@@ -1021,6 +1085,12 @@ function preload() {
     frameList: getSpritesList("enemy3_idle", 0, 2),
     timePerFrame: 0.5,
     loop: true
+  }
+  animations.explosion = {
+    frameList: getSpritesList("enemy3_idle", 0, 2),
+    timePerFrame: 0.5,
+    loop: false,
+    finish: Explosion.OnExplotionEndCallback
   }
   let pngs = Object.keys(animations).flatMap(k => animations[k].frameList)
   for (const png of pngs) {
