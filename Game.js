@@ -157,6 +157,7 @@ class Plane extends AnimatedEntity {
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
     this.lives = lives
+    this.maxLives = this.lives
     this.isEnemy = true
   }
 
@@ -178,7 +179,25 @@ class Plane extends AnimatedEntity {
   }
 
   draw() {
+    this.drawColorLive()
     super.draw()
+    noTint() // Disable tint
+  }
+
+  //same colos like breakout
+  drawColorLive() {
+    if (this.lives <= 1) {
+      tint(255, 0, 0) // red
+    }
+    else if (this.lives <= floor(this.maxLives * 0.25)) {
+      tint(255, 128, 0) // orange
+    }
+    else if (this.lives <= floor(this.maxLives * 0.50)) {
+      tint(255, 255, 0) // yellow
+    }
+    else {
+      tint(255, 255, 255) // white
+    }
   }
 }
 Plane.width = 20
@@ -203,34 +222,6 @@ class EnemyPlane extends Plane {
   update() {
     this.move()
     super.update()
-  }
-
-  draw() {
-    this.drawColorLive()
-    super.draw()
-    noTint() // Disable tint
-  }
-
-  //same colos like breakout
-  drawColorLive() {
-    switch (this.lives) {
-      default:
-      case 1:
-        tint(255, 255, 255) //white
-        break
-      case 2:
-        tint(255, 255, 0) //yellow
-        break
-      case 3:
-        tint(0, 255, 0) //green
-        break
-      case 4:
-        tint(255, 165, 0) //orange
-        break
-      case 5:
-        tint(255, 0, 0) //red
-        break
-    }
   }
 }
 
@@ -338,14 +329,10 @@ class PlayerPlane extends Plane {
       this.tripleFireRemainingDuration -= delta()
     }
   }
-
-  draw() {
-    super.draw()
-  }
 }
 PlayerPlane.trackingDistance = 10
 PlayerPlane.interShootTime = 2
-PlayerPlane.lives = 10
+PlayerPlane.lives = 5
 PlayerPlane.player1IdleAnim = "player1Plane_idle"
 PlayerPlane.player2IdleAnim = "player2Plane_idle"
 PlayerPlane.DisconnectionTime = 20.0
@@ -509,7 +496,7 @@ class LivesPowerUp extends PowerUp {
 
   applyEffect(playerPlane) {
     super.applyEffect(playerPlane)
-    playerPlane.lives = min(playerPlane.lives + LivesPowerUp.LivesGiven, PlayerPlane.lives)
+    playerPlane.lives = min(playerPlane.lives + LivesPowerUp.LivesGiven, playerPlane.maxLives)
   }
 }
 LivesPowerUp.LivesGiven = 1
@@ -616,7 +603,7 @@ class World {
     // Undefined means that the player is not respawning
     this.remainingRespawnTime.fill(undefined)
 
-    this.bestScoreEverTxt = new Text("", 0, 20, CENTER)
+    this.bestScoreEverTxt = new Text("", 0, 0, CENTER)
     
     this.CurrentScore = new Array(World.MaxPlayers)
     this.BestScore = new Array(World.MaxPlayers)
@@ -918,14 +905,14 @@ class World {
         playerMarkerText.x = player.x
         playerMarkerText.y = player.y
         
-        txt += "Player: " + (i + 1) + "\n"
+        txt += "P: " + (i + 1) + "\n"
         txt += "Lives: " + player.lives + "\n"
-        txt += "Points: " + worldInstance.CurrentScore[i] + "\n",
-        txt += "Best Score: " + worldInstance.BestScore[i]
+        txt += "Score: " + worldInstance.CurrentScore[i] + "\n",
+        txt += "Best: " + worldInstance.BestScore[i]
       }
       this.playerUIText[i].setText(txt)
     }
-    this.bestScoreEverTxt.setText("Best Score: " +  BestScoreEver)
+    this.bestScoreEverTxt.setText("HighScore: " +  BestScoreEver)
   }
 
   draw() {
