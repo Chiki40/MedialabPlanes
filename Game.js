@@ -609,9 +609,8 @@ class World {
       this.playerTexts[i] = undefined
     }
 
-    // Setting background
-    // TODO: Use random to get one of the backgrounds arrays
-    let backgroundSelected = images.backgroundFarm
+    // Setting random background
+    let backgroundSelected = images.backgrounds[floor(random(images.backgrounds.length))]
     this.backgroudMgr = new BackgroundManager(World.BackgroundSpeed, backgroundSelected)
     this.remainingRespawnTime = new Array(World.MaxPlayers)
     // Undefined means that the player is not respawning
@@ -1123,13 +1122,15 @@ function preload() {
   images.livesPowerUp = loadImage(`${url}/ball_red.png`)
   images.rapidFirePowerUp = loadImage(`${url}/ball_yellow.png`)
   images.tripleFirePowerUp = loadImage(`${url}/ball_green.png`)
-  images.backgroundFarm = new Array(
+  images.backgrounds = new Array(
+                          new Array(
                             loadImage(`${url}/background_farm_05.png`),
                             loadImage(`${url}/background_farm_04.png`),
                             loadImage(`${url}/background_farm_03.png`),
                             loadImage(`${url}/background_farm_02.png`),
                             loadImage(`${url}/background_farm_01.png`)
                           )
+                        )
 }
 
 function draw() {
