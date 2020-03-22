@@ -64,7 +64,7 @@ function saveBestScoreEver(score) {
 }
 
 class Entity {
-  constructor(x = 0, y = 0, w, h = w) {
+  constructor(x, y, w, h) {
     this.x = x
     this.y = y
     this.w = w
@@ -81,7 +81,7 @@ class Entity {
 }
 
 class AnimatedEntity extends Entity {
-  constructor(animation, x, y, w, h = w) {
+  constructor(animation, x, y, w, h) {
     super(x, y, w, h)
     this.playAnim(animation)
   }
@@ -152,23 +152,26 @@ class Text extends Entity {
 Text.size = undefined
 
 class Plane extends AnimatedEntity {
-  constructor(x, y, interShootTime, lives, animation, w = Plane.width, h = Plane.height) {
-    super(animation, x, y, w, h)
+  constructor(x, y, interShootTime, lives, animation) {
+    super(animation, x, y, Plane.width, Plane.height)
     this.interShootTime = interShootTime
     this.currentInterShootTime = interShootTime
     this.lives = lives
+    this.isEnemy = true
   }
 
   shoot() {
-    let bullet = new Bullet(this.isEnemy, createVector(0, 1), this.id, this.x, this.y)
+    let bullet = new Bullet(this.isEnemy, createVector(0, 1), this.x, this.y)
     worldInstance.addBullet(bullet)
+    return bullet
   }
 
   update() {
     super.update()
 
     this.currentInterShootTime += delta()
-    if (this.currentInterShootTime >= this.interShootTime) {
+    // Negative interShootTime means the plane can't shoot
+    if (this.interShootTime >= 0 && this.currentInterShootTime >= this.interShootTime) {
       this.shoot()
       this.currentInterShootTime = 0
     }
@@ -182,8 +185,8 @@ Plane.width = 20
 Plane.height = 20
 
 class EnemyPlane extends Plane {
-  constructor(x, y, interShootTime, velocity, lives, points, animation) {
-    super(x, y, interShootTime, lives, animation, -1)
+  constructor(x, y, interShootTime, lives, animation, velocity, points) {
+    super(x, y, interShootTime, lives, animation)
     this.isEnemy = true
     this.velocity = velocity
     this.points = points
@@ -232,8 +235,8 @@ class EnemyPlane extends Plane {
 }
 
 class PlayerPlane extends Plane {
-  constructor(id, x, y, interShootTime = PlayerPlane.interShootTime) {
-    super(x, y, interShootTime, PlayerPlane.lives, id == 0 ? PlayerPlane.player1IdleAnim : PlayerPlane.player2IdleAnim)
+  constructor(id, x, y) {
+    super(x, y, PlayerPlane.interShootTime, PlayerPlane.lives, id == 0 ? PlayerPlane.player1IdleAnim : PlayerPlane.player2IdleAnim)
     this.id = id
     
     this.isEnemy = false
@@ -303,12 +306,15 @@ class PlayerPlane extends Plane {
       return
     }
 
-    super.shoot()
+    let bulletCenter = super.shoot()
+    bulletCenter.idPlayer = this.id
     if (this.tripleFireRemainingDuration > 0) {
       let bulletLeft = new Bullet(this.isEnemy, createVector(-1, 1), this.x, this.y)
       worldInstance.addBullet(bulletLeft)
+      bulletLeft.idPlayer = this.id
       let bulletRight = new Bullet(this.isEnemy, createVector(1, 1), this.x, this.y)
       worldInstance.addBullet(bulletRight)
+      bulletRight.idPlayer = this.id
     }
   }
 
@@ -338,7 +344,7 @@ class PlayerPlane extends Plane {
   }
 }
 PlayerPlane.trackingDistance = 10
-PlayerPlane.interShootTime = 10
+PlayerPlane.interShootTime = 2
 PlayerPlane.lives = 10
 PlayerPlane.player1IdleAnim = "player1Plane_idle"
 PlayerPlane.player2IdleAnim = "player2Plane_idle"
@@ -347,7 +353,7 @@ PlayerPlane.DisconnectionTime = 20.0
 
 class BasicPlane extends EnemyPlane {
   constructor(x, y) {
-    super(x, y, BasicPlane.interShootTime, BasicPlane.velocity, BasicPlane.lives, BasicPlane.points, BasicPlane.idleAnim)
+    super(x, y, BasicPlane.interShootTime, BasicPlane.lives, BasicPlane.idleAnim, BasicPlane.velocity, BasicPlane.points)
   }
 
   update() {
@@ -356,11 +362,11 @@ class BasicPlane extends EnemyPlane {
 
   move() {
     super.move()
-    // this plane doesn't do anything more
+    // this plane doesn't do anything else
   }
 }
 BasicPlane.velocity = 2
-BasicPlane.interShootTime = 10
+BasicPlane.interShootTime = 6
 BasicPlane.points = 10
 BasicPlane.lives = 2
 BasicPlane.idleAnim = "basicEnemyPlane_idle"
@@ -368,7 +374,7 @@ BasicPlane.prob = 50
 
 class HardPlane extends EnemyPlane {
   constructor(x, y) {
-    super(x, y, HardPlane.interShootTime, HardPlane.velocity, HardPlane.lives, HardPlane.points, HardPlane.idleAnim)
+    super(x, y, HardPlane.interShootTime, HardPlane.lives, HardPlane.idleAnim, HardPlane.velocity, HardPlane.points)
     this.movementLeft = false
     let randomValue = random(0, 100)
     if (randomValue < 50) {
@@ -399,7 +405,7 @@ HardPlane.prob = 30
 
 class KamikazePlane extends EnemyPlane {
   constructor(x, y) {
-    super(x, y, KamikazePlane.interShootTime, KamikazePlane.velocity, KamikazePlane.lives, KamikazePlane.points, KamikazePlane.idleAnim)
+    super(x, y, KamikazePlane.interShootTime, KamikazePlane.lives, KamikazePlane.idleAnim, KamikazePlane.velocity, KamikazePlane.points)
   }
 
   update() {
@@ -408,11 +414,11 @@ class KamikazePlane extends EnemyPlane {
 
   move() {
     super.move()
-    // this plane doesn't do anything more
+    // this plane doesn't do anything else
   }
 }
 KamikazePlane.velocity = 10
-KamikazePlane.interShootTime = 5000
+KamikazePlane.interShootTime = -1 // Can't shoot
 KamikazePlane.points = 50
 KamikazePlane.lives = 1
 KamikazePlane.prob = 20
@@ -420,10 +426,9 @@ KamikazePlane.idleAnim = "kamikazeEnemyPlane_idle"
 
 
 class Bullet extends Entity {
-  constructor(isFromEnemy, direction, idPlayer, x = 0, y = 0, w = Bullet.width, h = Bullet.height) {
-    super(x, y, w, h)
+  constructor(isFromEnemy, direction, x, y) {
+    super(x, y, Bullet.width, Bullet.height)
     this.isFromEnemy = isFromEnemy
-    this.idPlayer = idPlayer
     this.direction = direction.normalize()
     // If bullet is from player, shooting forward means down
     if (!this.isFromEnemy) {
@@ -432,6 +437,7 @@ class Bullet extends Entity {
     {
       direction.x *= -1
     }
+    this.idPlayer = undefined
   }
 
   update() {
@@ -455,8 +461,8 @@ Bullet.width = 8
 Bullet.height = 8
 
 class PowerUp extends Entity {
-  constructor(x = 0, y = 0, w = PowerUp.width, h = PowerUp.height) {
-    super(x, y, w, h)
+  constructor(x, y) {
+    super(x, y, PowerUp.width, PowerUp.height)
     this.image = undefined // Overriden by each type of PowerUp
     this.remainingLifeTime = PowerUp.lifeTime
   }
@@ -483,7 +489,7 @@ PowerUp.width = 8
 PowerUp.height = 8
 
 class ScorePowerUp extends PowerUp {
-  constructor(x = 0, y = 0) {
+  constructor(x, y) {
     super(x, y)
     this.image = images.scorePowerUp
   }
@@ -496,20 +502,20 @@ class ScorePowerUp extends PowerUp {
 ScorePowerUp.ScoreGiven = 50
 
 class LivesPowerUp extends PowerUp {
-  constructor(x = 0, y = 0) {
+  constructor(x, y) {
     super(x, y)
     this.image = images.livesPowerUp
   }
 
   applyEffect(playerPlane) {
     super.applyEffect(playerPlane)
-    playerPlane.lives += LivesPowerUp.LivesGiven
+    playerPlane.lives = min(playerPlane.lives + LivesPowerUp.LivesGiven, PlayerPlane.lives)
   }
 }
 LivesPowerUp.LivesGiven = 1
 
 class RapidFirePowerUp extends PowerUp {
-  constructor(x = 0, y = 0) {
+  constructor(x, y) {
     super(x, y)
     this.image = images.rapidFirePowerUp
   }
@@ -523,7 +529,7 @@ RapidFirePowerUp.InterShootTimeMultiplier = 0.3
 RapidFirePowerUp.Duration = 10.0
 
 class TripleFirePowerUp extends PowerUp {
-  constructor(x = 0, y = 0) {
+  constructor(x, y) {
     super(x, y)
     this.image = images.tripleFirePowerUp
   }
@@ -790,7 +796,7 @@ class World {
           }
         }
       } else {
-        //It's a enemy bullet, check collision with player
+        //It's an enemy bullet, check collision with player
         for (let j = this.playerPlanes.length - 1; j >= 0; --j) {
           if (this.playerPlanes[j] === undefined) {
             continue
