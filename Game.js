@@ -472,8 +472,8 @@ class PowerUp extends Entity {
 }
 PowerUp.timeBetweenPowerUps = 10.0
 PowerUp.lifeTime = 8.0
-PowerUp.width = 8
-PowerUp.height = 8
+PowerUp.width = 17
+PowerUp.height = 17
 
 class ScorePowerUp extends PowerUp {
   constructor(x, y) {
@@ -1094,7 +1094,7 @@ function preload() {
     loop: true
   }
   animations.explosion = {
-    frameList: getSpritesList("enemy3_idle", 0, 2),
+    frameList: getSpritesList("explosion", 0, 2),
     timePerFrame: 0.5,
     loop: false,
     finish: Explosion.OnExplotionEndCallback
@@ -1105,10 +1105,10 @@ function preload() {
   }
   images.bulletGood = loadImage(`${url}/Laser_blue.png`)
   images.bulletBad = loadImage(`${url}/Laser_red.png`)
-  images.scorePowerUp = loadImage(`${url}/ball_blue.png`)
+  images.scorePowerUp = loadImage(`${url}/score_power_up.png`)
   images.livesPowerUp = loadImage(`${url}/ball_red.png`)
-  images.rapidFirePowerUp = loadImage(`${url}/ball_yellow.png`)
-  images.tripleFirePowerUp = loadImage(`${url}/ball_green.png`)
+  images.rapidFirePowerUp = loadImage(`${url}/rapid_fire_power_up.png`)
+  images.tripleFirePowerUp = loadImage(`${url}/triple_fire_power_up.png`)
   images.backgrounds = new Array(
                           new Array(
                             loadImage(`${url}/background_farm_05.png`),
