@@ -122,7 +122,7 @@ class AnimatedEntity extends Entity {
 
   draw() {
     // This is a p5js function to draw sprites
-    image(this.image, this.x, this.y)
+    image(this.image, this.x - this.w / 2.0, this.y - this.h / 2.0)
   }
 }
 
@@ -162,7 +162,7 @@ class Plane extends AnimatedEntity {
   }
 
   shoot() {
-    let bullet = new Bullet(this.isEnemy, createVector(0, 1), this.x, this.y)
+    let bullet = new Bullet(this.isEnemy, createVector(0, 1), this.x, this.y, this.w, this.h)
     worldInstance.addBullet(bullet)
     return bullet
   }
@@ -300,10 +300,10 @@ class PlayerPlane extends Plane {
     let bulletCenter = super.shoot()
     bulletCenter.idPlayer = this.id
     if (this.tripleFireRemainingDuration > 0) {
-      let bulletLeft = new Bullet(this.isEnemy, createVector(-1, 1), this.x, this.y)
+      let bulletLeft = new Bullet(this.isEnemy, createVector(-1, 1), this.x, this.y, this.w, this.h)
       worldInstance.addBullet(bulletLeft)
       bulletLeft.idPlayer = this.id
-      let bulletRight = new Bullet(this.isEnemy, createVector(1, 1), this.x, this.y)
+      let bulletRight = new Bullet(this.isEnemy, createVector(1, 1), this.x, this.y, this.w, this.h)
       worldInstance.addBullet(bulletRight)
       bulletRight.idPlayer = this.id
     }
@@ -413,8 +413,12 @@ KamikazePlane.idleAnim = "kamikazeEnemyPlane_idle"
 
 
 class Bullet extends Entity {
-  constructor(isFromEnemy, direction, x, y) {
-    super(x, y, Bullet.width, Bullet.height)
+  constructor(isFromEnemy, direction, parentX, parentY, parentW, parentH) {
+    // Calculate where the bullet spawns
+    let xPos = parentX
+    let yPos = !isFromEnemy ? parentY - parentH / 2.0 : parentY + parentH / 2.0
+    super(xPos, yPos, Bullet.width, Bullet.height)
+    
     this.isFromEnemy = isFromEnemy
     this.direction = direction.normalize()
     // If bullet is from player, shooting forward means down
@@ -440,7 +444,12 @@ class Bullet extends Entity {
   }
 
   draw() {
-    image(this.isFromEnemy ? images.bulletBad : images.bulletGood, this.x, this.y)
+    if (this.isFromEnemy) {
+      image(images.bulletBad, this.x - this.w / 2.0, this.y - this.h / 2.0)
+    }
+    else {
+      image(this.idPlayer == 0 ? images.bulletGood : images.bulletGood2, this.x - this.w / 2.0, this.y - this.h / 2.0)
+    }
   }
 }
 Bullet.speed = 25.0
@@ -464,7 +473,7 @@ class PowerUp extends Entity {
 
   draw() {
     if (this.image !== undefined) {
-      image(this.image, this.x, this.y)
+      image(this.image, this.x - this.w / 2.0, this.y - this.h / 2.0)
     }
   }
 
@@ -1103,8 +1112,9 @@ function preload() {
   for (const png of pngs) {
     images[png] = loadImage(`${url}/${png}.png`)
   }
-  images.bulletGood = loadImage(`${url}/Laser_blue.png`)
-  images.bulletBad = loadImage(`${url}/Laser_red.png`)
+  images.bulletGood = loadImage(`${url}/ball_blue.png`)
+  images.bulletGood2 = loadImage(`${url}/ball_green.png`)
+  images.bulletBad = loadImage(`${url}/ball_red.png`)
   images.scorePowerUp = loadImage(`${url}/score_power_up.png`)
   images.livesPowerUp = loadImage(`${url}/ball_red.png`)
   images.rapidFirePowerUp = loadImage(`${url}/rapid_fire_power_up.png`)
