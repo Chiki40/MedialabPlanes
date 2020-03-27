@@ -971,7 +971,7 @@ class World {
 
   addPlayer(player) {
     this.playerPlanes[player.id] = player
-    this.playerTexts[player.id] = new Text("P" + (player.id + 1), CENTER, player.x, player.y, 20)
+    this.playerTexts[player.id] = new Text("P" + (player.id + 1), player.x, player.y, CENTER, 5, 40)
   }
   addBullet(bullet) {
     this.bullets.push(bullet)
