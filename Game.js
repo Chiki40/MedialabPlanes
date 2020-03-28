@@ -186,7 +186,10 @@ class Plane extends AnimatedEntity {
 
   //same colos like breakout
   drawColorLive() {
-    if (this.lives <= 1) {
+    if (this.lives >= this.maxLives) {
+      tint(255, 255, 255) // white
+    }
+    else if (this.lives <= 1) {
       tint(255, 0, 0) // red
     }
     else if (this.lives <= floor(this.maxLives * 0.25)) {
