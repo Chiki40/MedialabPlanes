@@ -1119,7 +1119,7 @@ function preload() {
   images.bulletGood2 = loadImage(`${url}/ball_green.png`)
   images.bulletBad = loadImage(`${url}/ball_red.png`)
   images.scorePowerUp = loadImage(`${url}/score_power_up.png`)
-  images.livesPowerUp = loadImage(`${url}/ball_red.png`)
+  images.livesPowerUp = loadImage(`${url}/life_power_up.png`)
   images.rapidFirePowerUp = loadImage(`${url}/rapid_fire_power_up.png`)
   images.tripleFirePowerUp = loadImage(`${url}/triple_fire_power_up.png`)
   images.backgrounds = new Array(
